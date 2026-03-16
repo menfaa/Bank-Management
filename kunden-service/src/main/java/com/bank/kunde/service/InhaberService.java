@@ -1,8 +1,5 @@
 package com.bank.kunde.service;
 
-import java.util.Optional;
-
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

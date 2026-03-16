@@ -20,6 +20,10 @@ public class SEPAUeberweisung extends Zahlung {
     @Column(nullable = true)
     private String empfaengerName;
 
+    public SEPAUeberweisung() {
+        super();
+    }
+
     public SEPAUeberweisung(String auftraggeberIban, String empfaengerIban, String empfaengerName,
             Betrag betrag, LocalDate datum, String verwendungszweck) {
         super(betrag, datum, verwendungszweck, Zahlungsart.SEPA);

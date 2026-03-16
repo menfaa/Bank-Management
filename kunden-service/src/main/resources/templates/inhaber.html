@@ -6,7 +6,7 @@
     <script src="http://localhost:8081/js/keycloak.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; padding: 20px; background-color: #f8f9fa; color: #333; }
-        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         h1 { border-bottom: 3px solid #007bff; padding-bottom: 10px; margin-bottom: 20px; }
         
         .auth-bar { display: flex; justify-content: space-between; background: #e9ecef; padding: 10px 15px; border-radius: 5px; margin-bottom: 20px; align-items: center; }
@@ -19,15 +19,18 @@
         .btn-primary { background: #007bff; }
         .btn-secondary { background: #6c757d; }
         .btn-danger { background: #dc3545; }
+        .btn-dark { background: #212529; }
 
         #output { border-top: 1px solid #eee; padding-top: 20px; min-height: 100px; }
         
-        /* Tabellen-Styling */
         .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         .data-table th, .data-table td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
         .data-table th { background: #f8f9fa; color: #666; font-size: 0.9em; text-transform: uppercase; }
         .id-badge { background: #e9ecef; padding: 4px 8px; border-radius: 4px; font-family: 'Consolas', monospace; font-weight: bold; color: #222; }
         .loading-msg { font-style: italic; color: #888; }
+        
+        /* Neuer Löschen-Button Style */
+        .btn-delete { background: #dc3545; padding: 6px 12px; font-size: 0.8em; }
     </style>
 </head>
 <body>
@@ -35,45 +38,35 @@
 <div class="container">
     <h1>📋 Inhaber Übersicht</h1>
 
-    <!-- Authentifizierungs-Bereich -->
     <div class="auth-bar">
         <div class="user-info">👤 <span id="user-display">Warte auf Login...</span></div>
         <button class="btn-danger" onclick="keycloak.logout()">Abmelden</button>
     </div>
 
-    <!-- Navigation & Steuerung -->
     <div class="button-row">
-          <!-- Zurück zum Haupt-Dashboard auf Port 9000 -->
-        <button class="btn-dark" onclick="window.location.href='http://localhost:9000'" style="background: #212529;">
-            🏠 Zum Dashboard
-        </button>
+        <button class="btn-dark" onclick="window.location.href='http://localhost:9000'">🏠 Zum Dashboard</button>
         <button class="btn-primary" onclick="loadInhaber()">🔄 Liste aktualisieren</button>
-        <button class="btn-secondary" onclick="window.location.href='http://localhost:9001/inhaber'">📄 Thymeleaf Vollbild</button>
     </div>
 
-    <!-- Anzeige-Bereich -->
     <div id="output">
         <p class="loading-msg">Daten werden geladen...</p>
     </div>
 </div>
 
 <script>
-    // Keycloak Konfiguration
     const keycloak = new Keycloak({
         url: 'http://localhost:8081/',
         realm: 'myRealm',
         clientId: 'girokonto-service'
     });
 
-    // Initialisierung
     keycloak.init({ onLoad: 'login-required', checkLoginIframe: false }).then(auth => {
         if (auth) {
             document.getElementById('user-display').textContent = keycloak.tokenParsed.preferred_username;
-            loadInhaber(); // Initialer Load
+            loadInhaber();
         }
     });
 
-    // --- TECHNIK: DATEN LADEN ---
     function loadInhaber() {
         const outputDiv = document.getElementById('output');
         outputDiv.innerHTML = '<p class="loading-msg">Hole Inhaber-Daten vom Service (Port 9001)...</p>';
@@ -90,17 +83,13 @@
                 if (!res.ok) throw new Error('HTTP Status ' + res.status);
                 return res.json();
             })
-            .then(data => {
-                // Übergabe an die Render-Funktion
-                renderInhaber(data);
-            })
+            .then(data => renderInhaber(data))
             .catch(err => {
                 outputDiv.innerHTML = `<p style="color:red;">⚠️ Fehler beim Abruf: ${err.message}</p>`;
             });
         }).catch(() => keycloak.login());
     }
 
-    // --- UI: DATEN DARSTELLEN ---
     function renderInhaber(inhaberListe) {
         const outputDiv = document.getElementById('output');
         
@@ -109,27 +98,60 @@
             return;
         }
 
-        // Tabellen-Struktur aufbauen
         let html = `
             <table class="data-table">
                 <thead>
                     <tr>
                         <th>Inhaber-ID</th>
                         <th>Vollständiger Name</th>
+                        <th style="text-align:right;">Aktion</th>
                     </tr>
                 </thead>
                 <tbody>`;
 
         inhaberListe.forEach(inh => {
+            // WICHTIG: Prüfung ob inh.inhaberId.value existiert (wegen DDD Value Object)
+            const idValue = inh.inhaberId ? inh.inhaberId.value : inh.id;
             html += `
                 <tr>
-                    <td><span class="id-badge">${inh.inhaberId.value}</span></td>
+                    <td><span class="id-badge">${idValue}</span></td>
                     <td>${inh.name}</td>
+                    <td style="text-align:right;">
+                        <button class="btn-delete" onclick="deleteInhaber('${idValue}')">
+                            🗑️ Inhaber & Konten löschen
+                        </button>
+                    </td>
                 </tr>`;
         });
 
         html += `</tbody></table>`;
         outputDiv.innerHTML = html;
+    }
+
+    async function deleteInhaber(id) {
+        if (!confirm("WARNUNG: Das Löschen des Inhabers löscht über Kafka auch ALLE seine Girokonten im Girokonto-Service! Fortfahren?")) {
+            return;
+        }
+
+        try {
+            await keycloak.updateToken(30);
+            const response = await fetch(`http://localhost:9001/api/inhaber/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': 'Bearer ' + keycloak.token
+                }
+            });
+
+            if (response.ok) {
+                alert("Inhaber-Löschung initiiert (Kafka-Prozess läuft).");
+                loadInhaber(); // Liste neu laden
+            } else {
+                const errorMsg = await response.text();
+                alert("Fehler beim Löschen: " + errorMsg);
+            }
+        } catch (err) {
+            alert("Netzwerkfehler: " + err.message);
+        }
     }
 </script>
 

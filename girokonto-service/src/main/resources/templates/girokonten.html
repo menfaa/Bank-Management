@@ -5,37 +5,31 @@
     <title>Alle Girokonten</title>
     <script src="http://localhost:8081/js/keycloak.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; background-color: #f4f7f6; }
-        .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 8px; }
-        table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        body { font-family: sans-serif; padding: 20px; background-color: #f4f7f6; color: #333; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        table { border-collapse: collapse; width: 100%; margin-top: 10px; background: #fff; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
         th { background: #007bff; color: white; }
-        tr:nth-child(even) { background: #f2f2f2; }
-        .konto-block { margin-bottom: 40px; border: 1px solid #ccc; border-radius: 8px; padding: 16px; background: #fff; }
-        h2 { margin-top: 0; color: #007bff; }
-        .button {
-            display: inline-block;
-            padding: 10px 20px;
-            background: #6c757d;
-            color: white;
-            border-radius: 4px;
-            text-decoration: none;
-            margin-bottom: 20px;
-            font-weight: bold;
-        }
-        #loading { font-style: italic; color: #666; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        
+        .konto-block { margin-bottom: 40px; border: 1px solid #ccc; border-radius: 8px; padding: 20px; background: #fff; position: relative; }
+        h2 { margin-top: 0; color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 5px; }
+        
+        .button { display: inline-block; padding: 10px 20px; background: #6c757d; color: white; border-radius: 4px; text-decoration: none; margin-bottom: 20px; font-weight: bold; }
+        .btn-delete { background: #dc3545; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; float: right; font-weight: bold; }
+        .btn-delete:hover { background: #c82333; }
+        
+        #loading { font-style: italic; color: #666; margin-bottom: 10px; }
+        .iban-highlight { font-family: monospace; font-weight: bold; color: #0056b3; }
     </style>
 </head>
 <body>
    <div class="container">
-    <h1>Alle Girokonten</h1>
+    <h1>🏦 Girokonten Überwachung</h1>
     
-    <!-- Geändert: Nutzt die absolute URL zum Dashboard auf Port 9000 -->
     <a href="http://localhost:9000" class="button">⬅ Zurück zum Dashboard</a>
 
     <div id="loading">Initialisiere Authentifizierung...</div>
-    
-    <!-- Hier wird deine JavaScript-Funktion renderKonten(data) die Daten einfügen -->
     <div id="konten-liste"></div>
     </div>
 
@@ -46,7 +40,7 @@
             clientId: 'girokonto-service'
         });
 
-        keycloak.init({ onLoad: 'login-required' }).then(auth => {
+        keycloak.init({ onLoad: 'login-required', checkLoginIframe: false }).then(auth => {
             if (auth) {
                 document.getElementById('loading').textContent = "Lade Kontodaten...";
                 loadGirokonten();
@@ -59,9 +53,7 @@
                     headers: { 'Authorization': 'Bearer ' + keycloak.token }
                 })
                 .then(res => res.json())
-                .then(data => {
-                    renderKonten(data);
-                })
+                .then(data => renderKonten(data))
                 .catch(err => {
                     document.getElementById('loading').textContent = "Fehler: " + err.message;
                 });
@@ -74,31 +66,33 @@
             container.innerHTML = '';
 
             if (girokonten.length === 0) {
-                container.innerHTML = '<p>Keine Girokonten gefunden.</p>';
+                container.innerHTML = '<p>Keine Girokonten im System gefunden.</p>';
             }
 
             girokonten.forEach(konto => {
-                // Erstellung der Kontoauszugs-Tabelle falls vorhanden
+                // FIX: Sicherer Zugriff auf DDD-Objekte (Object vs String)
+                const currentIban = konto.iban.value || konto.iban;
+                const currentInhaber = konto.inhaberId.value || konto.inhaberId;
+                const currentSaldo = (konto.kontostand && konto.kontostand.betrag) ? konto.kontostand.betrag.wert : "0.00";
+
                 let auszügeHtml = '<p><em>Keine Kontoauszüge vorhanden.</em></p>';
                 
                 if (konto.kontoauszuege && konto.kontoauszuege.length > 0) {
                     auszügeHtml = `
-                        <h3>Kontoauszüge</h3>
+                        <h3>Letzte Transaktionen</h3>
                         <table>
                             <thead>
                                 <tr>
-                                    <th>IBAN</th>
                                     <th>Datum</th>
                                     <th>Betrag</th>
-                                    <th>Verwendungszweck</th>
+                                    <th>Zweck</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 ${konto.kontoauszuege.map(auszug => `
                                     <tr>
-                                        <td>${auszug.girokontoIban.value}</td>
                                         <td>${auszug.datum}</td>
-                                        <td>${auszug.betrag.wert || auszug.betrag} EUR</td>
+                                        <td style="font-weight:bold;">${auszug.betrag.wert || auszug.betrag} EUR</td>
                                         <td>${auszug.verwendungszweck}</td>
                                     </tr>
                                 `).join('')}
@@ -106,18 +100,37 @@
                         </table>`;
                 }
 
-                // Gesamter Block pro Konto (dein altes Design)
                 const block = `
                     <div class="konto-block">
-                        <h2>IBAN: <span>${konto.iban.value}</span></h2>
-                        <p><strong>Inhaber:</strong> <span>${konto.inhaberId.value}</span></p>
-                        <p><strong>Kontostand:</strong> <span>${konto.kontostand.betrag.wert}</span> EUR</p>
+                        <button class="btn-delete" onclick="deleteKonto('${currentIban}')">Konto löschen</button>
+                        <h2>IBAN: <span class="iban-highlight">${currentIban}</span></h2>
+                        <p><strong>Inhaber-ID:</strong> <span>${currentInhaber}</span></p>
+                        <p><strong>Aktueller Kontostand:</strong> <span style="font-size:1.2em; font-weight:bold; color: #28a745;">${currentSaldo} EUR</span></p>
                         ${auszügeHtml}
                     </div>`;
                 
                 container.innerHTML += block;
             });
             loading.style.display = 'none';
+        }
+
+        async function deleteKonto(iban) {
+            if (!confirm(`Möchten Sie das Konto ${iban} wirklich löschen?`)) return;
+
+            await keycloak.updateToken(30);
+            fetch(`http://localhost:9000/api/girokonten/${iban}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + keycloak.token }
+            })
+            .then(res => {
+                if (res.ok) {
+                    alert("Konto erfolgreich gelöscht.");
+                    loadGirokonten();
+                } else {
+                    alert("Löschen fehlgeschlagen. Evtl. ist das Konto nicht leer?");
+                }
+            })
+            .catch(err => alert("Netzwerkfehler: " + err.message));
         }
     </script>
 </body>
