@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Inhaber Monitoring Dashboard</title>
+    <script src="http://localhost:8081/js/keycloak.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background-color: #f8f9fa; color: #333; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { border-bottom: 3px solid #007bff; padding-bottom: 10px; margin-bottom: 20px; }
+        
+        .auth-bar { display: flex; justify-content: space-between; background: #e9ecef; padding: 10px 15px; border-radius: 5px; margin-bottom: 20px; align-items: center; }
+        .user-info { font-weight: bold; color: #555; }
+        
+        .button-row { display: flex; gap: 10px; margin-bottom: 25px; }
+        button { padding: 10px 18px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; transition: opacity 0.2s; color: white; }
+        button:hover { opacity: 0.85; }
+        
+        .btn-primary { background: #007bff; }
+        .btn-secondary { background: #6c757d; }
+        .btn-danger { background: #dc3545; }
+
+        #output { border-top: 1px solid #eee; padding-top: 20px; min-height: 100px; }
+        
+        /* Tabellen-Styling */
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .data-table th, .data-table td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        .data-table th { background: #f8f9fa; color: #666; font-size: 0.9em; text-transform: uppercase; }
+        .id-badge { background: #e9ecef; padding: 4px 8px; border-radius: 4px; font-family: 'Consolas', monospace; font-weight: bold; color: #222; }
+        .loading-msg { font-style: italic; color: #888; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📋 Inhaber Übersicht</h1>
+
+    <!-- Authentifizierungs-Bereich -->
+    <div class="auth-bar">
+        <div class="user-info">👤 <span id="user-display">Warte auf Login...</span></div>
+        <button class="btn-danger" onclick="keycloak.logout()">Abmelden</button>
+    </div>
+
+    <!-- Navigation & Steuerung -->
+    <div class="button-row">
+          <!-- Zurück zum Haupt-Dashboard auf Port 9000 -->
+        <button class="btn-dark" onclick="window.location.href='http://localhost:9000'" style="background: #212529;">
+            🏠 Zum Dashboard
+        </button>
+        <button class="btn-primary" onclick="loadInhaber()">🔄 Liste aktualisieren</button>
+        <button class="btn-secondary" onclick="window.location.href='http://localhost:9001/inhaber'">📄 Thymeleaf Vollbild</button>
+    </div>
+
+    <!-- Anzeige-Bereich -->
+    <div id="output">
+        <p class="loading-msg">Daten werden geladen...</p>
+    </div>
+</div>
+
+<script>
+    // Keycloak Konfiguration
+    const keycloak = new Keycloak({
+        url: 'http://localhost:8081/',
+        realm: 'myRealm',
+        clientId: 'girokonto-service'
+    });
+
+    // Initialisierung
+    keycloak.init({ onLoad: 'login-required', checkLoginIframe: false }).then(auth => {
+        if (auth) {
+            document.getElementById('user-display').textContent = keycloak.tokenParsed.preferred_username;
+            loadInhaber(); // Initialer Load
+        }
+    });
+
+    // --- TECHNIK: DATEN LADEN ---
+    function loadInhaber() {
+        const outputDiv = document.getElementById('output');
+        outputDiv.innerHTML = '<p class="loading-msg">Hole Inhaber-Daten vom Service (Port 9001)...</p>';
+
+        keycloak.updateToken(30).then(() => {
+            fetch('http://localhost:9001/api/inhaber', {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + keycloak.token,
+                    'Accept': 'application/json'
+                }
+            })
+            .then(res => {
+                if (!res.ok) throw new Error('HTTP Status ' + res.status);
+                return res.json();
+            })
+            .then(data => {
+                // Übergabe an die Render-Funktion
+                renderInhaber(data);
+            })
+            .catch(err => {
+                outputDiv.innerHTML = `<p style="color:red;">⚠️ Fehler beim Abruf: ${err.message}</p>`;
+            });
+        }).catch(() => keycloak.login());
+    }
+
+    // --- UI: DATEN DARSTELLEN ---
+    function renderInhaber(inhaberListe) {
+        const outputDiv = document.getElementById('output');
+        
+        if (!inhaberListe || inhaberListe.length === 0) {
+            outputDiv.innerHTML = "<p>Keine Inhaber im System registriert.</p>";
+            return;
+        }
+
+        // Tabellen-Struktur aufbauen
+        let html = `
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Inhaber-ID</th>
+                        <th>Vollständiger Name</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+        inhaberListe.forEach(inh => {
+            html += `
+                <tr>
+                    <td><span class="id-badge">${inh.inhaberId.value}</span></td>
+                    <td>${inh.name}</td>
+                </tr>`;
+        });
+
+        html += `</tbody></table>`;
+        outputDiv.innerHTML = html;
+    }
+</script>
+
+</body>
+</html>

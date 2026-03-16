@@ -1,0 +1,45 @@
+[Frontend/Client]
+      |
+      | 1. Benutzer löst Zahlung aus (z.B. Button im UI)
+      v
+[GirokontoService] (girokonto-service)
+  - Klasse: KartenPaymentStrategy / SepaPaymentStrategy
+  - Methode: executePayment(Girokonto girokonto, Betrag betrag, String verwendungszweck)
+      |
+      | 2. Erzeugt PaymentRequestedEvent und sendet an Kafka
+      |    -> kafkaTemplate.send("payment-requested", event)
+      v
+[KAFKA] (Topic: payment-requested)
+      |
+      | 3. Listener empfängt Event
+      v
+[ZahlungsService] (zahlungs-service)
+  - Klasse: PaymentRequestedListener
+  - Methode: handlePaymentRequested(PaymentRequestedEvent event)
+      |
+      | 4. Ruft createKartenzahlung(event) oder createSepaZahlung(event) auf
+      v
+  - Klasse: ZahlungsService
+  - Methoden:
+      - createKartenzahlung(PaymentRequestedEvent event)
+      - createSepaZahlung(PaymentRequestedEvent event)
+      - saveZahlung(Zahlung zahlung)
+      |
+      | 5. Speichert Zahlung (repo.save(zahlung))
+      | 6. Erzeugt PaymentCompletedEvent und sendet an Kafka
+      |    -> kafkaTemplate.send("payment-completed", event)
+      v
+[KAFKA] (Topic: payment-completed)
+      |
+      | 7. Listener im girokonto-service empfängt Event
+      v
+[GirokontoService] (girokonto-service)
+  - Klasse: PaymentEventListener
+  - Methode: handlePaymentCompleted(PaymentCompletedEvent event)
+      |
+      | 8. Ruft addKontoauszugNachZahlung(event) auf
+      v
+  - Klasse: GirokontoService
+  - Methode: addKontoauszugNachZahlung(PaymentCompletedEvent event)
+      |
+      | 9. Fügt Kontoauszug zum Girokonto hinzu und speichert es

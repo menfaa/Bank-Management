@@ -1,0 +1,42 @@
+plugins {
+    id 'java-library'
+}
+
+group = 'com.bank'
+version = '0.0.1-SNAPSHOT'
+description = 'bank-common'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Für @Embeddable, @Column etc.
+    implementation 'jakarta.persistence:jakarta.persistence-api:3.1.0'
+
+    // Für jMolecules DDD-Annotationen
+    implementation 'org.jmolecules:jmolecules-ddd:1.7.0'
+}
+
+/**
+ * Spezial-Konfiguration für Multi-Modul-Projekte:
+ * Da das Spring Boot Plugin oft global vom Root-Projekt kommt, 
+ * deaktivieren wir hier den bootJar-Task sicher, damit Gradle 
+ * nicht nach einer Main-Klasse sucht.
+ */
+tasks.withType(Jar).configureEach {
+    // Falls ein bootJar-Task existiert (vom Spring Plugin), schalte ihn aus
+    if (name == "bootJar") {
+        enabled = false
+    }
+    // Stelle sicher, dass das normale JAR-File erzeugt wird
+    if (name == "jar") {
+        enabled = true
+    }
+}

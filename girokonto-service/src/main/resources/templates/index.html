@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Dashboard - SEPA & Kartenzahlung</title>
+    <script src="http://localhost:8081/js/keycloak.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net">
+    
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background-color: #f8f9fa; color: #333; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        h1 { border-bottom: 4px solid #007bff; padding-bottom: 10px; margin-bottom: 25px; font-weight: 800; }
+        
+        .auth-bar { display: flex; justify-content: space-between; align-items: center; background: #f1f3f5; padding: 12px 20px; border-radius: 8px; margin-bottom: 25px; border: 1px solid #dee2e6; }
+        .status-dot { height: 12px; width: 12px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+        
+        .button-row { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        button { padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s; color: white; display: flex; align-items: center; gap: 8px; }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        
+        .btn-primary { background: #007bff; }
+        .btn-success { background: #28a745; }
+        .btn-danger { background: #dc3545; }
+        .btn-secondary { background: #6c757d; }
+        .btn-purple { background: #6f42c1; }
+
+        .form-container { display: none; margin-top: 20px; padding: 25px; background: #f8f9fa; border-left: 5px solid #6f42c1; border-radius: 0 8px 8px 0; box-shadow: inset 0 0 10px rgba(0,0,0,0.05); }
+        input, select { display: block; width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ced4da; border-radius: 6px; }
+        
+        #output { background: #212529; color: #00ff41; padding: 20px; border-radius: 8px; font-family: 'Consolas', monospace; height: 200px; overflow-y: auto; white-space: pre-wrap; font-size: 0.9rem; margin-top: 10px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1><i class="bi bi-bank me-2"></i>Bank Management</h1>
+
+    <div class="auth-bar">
+        <div>
+            <span id="auth-status-dot" class="status-dot" style="background: #dc3545;"></span>
+            <span id="auth-text" class="fw-bold">Nicht verbunden</span> | <span id="user-name">Warte auf Login...</span>
+        </div>
+        <button class="btn-danger btn-sm" onclick="keycloak.logout()"><i class="bi bi-box-arrow-right"></i> Abmelden</button>
+    </div>
+
+    <div class="button-row">
+        <button class="btn-primary" onclick="window.location.href='http://localhost:9000/girokonten'"><i class="bi bi-list-ul"></i> Girokonten</button>
+        <button class="btn-secondary" onclick="window.location.href='http://localhost:9001/inhaber'"><i class="bi bi-people"></i> Inhaber</button>
+        <button class="btn-purple" onclick="toggleForm('zahlung-form')"><i class="bi bi-currency-euro"></i> Neue Zahlung</button>
+    </div>
+
+    <!-- Formular: Zahlungsservice -->
+    <div id="zahlung-form" class="form-container">
+        <h3><i class="bi bi-credit-card-2-back me-2"></i>Zahlung ausführen</h3>
+        
+        <label>Zahlungsart wählen:</label>
+        <select id="zahlungsart" onchange="updateZahlungsFelder()">
+            <option value="sepa">SEPA Überweisung</option>
+            <option value="karte">Kartenzahlung</option>
+        </select>
+
+        <!-- Gemeinsame Felder -->
+        <input type="text" id="main-iban" placeholder="Deine IBAN (Girokonto)">
+        <input type="number" id="betrag" placeholder="Betrag in €" step="0.01">
+        <input type="text" id="zweck" placeholder="Verwendungszweck">
+
+        <!-- SEPA Spezifisch -->
+        <div id="sepa-fields">
+            <input type="text" id="empfaenger-iban" placeholder="Empfänger IBAN">
+            <input type="text" id="empfaenger-name" placeholder="Empfänger Name">
+        </div>
+
+        <!-- Karte Spezifisch -->
+        <div id="karte-fields" class="hidden">
+            <input type="text" id="kartennummer" placeholder="Kartennummer (optional)">
+            <input type="text" id="haendler" placeholder="Händler Name">
+        </div>
+
+        <div class="button-row">
+            <button class="btn-purple" onclick="executePayment()">Zahlung senden</button>
+            <button class="btn-secondary" onclick="toggleForm('zahlung-form')">Abbrechen</button>
+        </div>
+    </div>
+
+    <div style="margin-top: 30px;">
+        <h3 style="font-size: 1rem; color: #666; font-weight: bold;">SYSTEM-LOG:</h3>
+        <pre id="output">Initialisiere System...</pre>
+    </div>
+</div>
+
+<script>
+    const keycloak = new Keycloak({ url: 'http://localhost:8081/', realm: 'myRealm', clientId: 'girokonto-service' });
+
+    function addLog(msg, type = 'info') {
+        const out = document.getElementById('output');
+        const time = new Date().toLocaleTimeString();
+        if (out.textContent.includes("Initialisiere")) out.textContent = "";
+        out.textContent += `[${time}] ${type === 'error' ? '❌' : '🔹'} ${msg}\n`;
+        out.scrollTop = out.scrollHeight;
+    }
+
+    keycloak.init({ onLoad: 'login-required', checkLoginIframe: false }).then(auth => {
+        if (auth) {
+            document.getElementById('auth-status-dot').style.background = "#28a745";
+            document.getElementById('auth-text').textContent = "Verbunden";
+            document.getElementById('user-name').textContent = "User: " + keycloak.tokenParsed.preferred_username;
+            addLog("Authentifizierung erfolgreich.");
+        }
+    });
+
+    function updateZahlungsFelder() {
+        const art = document.getElementById('zahlungsart').value;
+        document.getElementById('sepa-fields').classList.toggle('hidden', art !== 'sepa');
+        document.getElementById('karte-fields').classList.toggle('hidden', art !== 'karte');
+        addLog(`Zahlungsart auf ${art} geändert.`);
+    }
+
+    async function executePayment() {
+        const art = document.getElementById('zahlungsart').value;
+        const iban = document.getElementById('main-iban').value;
+        
+        if (!iban) {
+            addLog("FEHLER: Bitte gib deine IBAN an!", "error");
+            return;
+        }
+
+        const payload = {
+            betrag: { wert: parseFloat(document.getElementById('betrag').value) },
+            verwendungszweck: document.getElementById('zweck').value,
+            datum: new Date().toISOString().split('T')[0]
+        };
+
+        // Dynamische URL basierend auf der IBAN und Zahlungsart
+        let endpoint = `http://localhost:9000/api/girokonten/${iban}/`;
+        
+        if (art === 'sepa') {
+            endpoint += 'sepapayment';
+            payload.empfaengerIban = document.getElementById('empfaenger-iban').value;
+            payload.empfaengerName = document.getElementById('empfaenger-name').value;
+        } else {
+            endpoint += 'kartenpayment';
+            payload.kartennummer = document.getElementById('kartennummer').value;
+            payload.haendler = document.getElementById('haendler').value;
+        }
+
+        addLog(`Sende Request an: ${endpoint}`);
+        
+        try {
+            await keycloak.updateToken(30);
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 
+                    'Authorization': 'Bearer ' + keycloak.token, 
+                    'Content-Type': 'application/json' 
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                addLog(`ERFOLG: ${art.toUpperCase()} wurde ausgeführt.`, "success");
+            } else {
+                const errorData = await response.text();
+                addLog(`SERVER-FEHLER (${response.status}): ${errorData}`, "error");
+            }
+        } catch (err) {
+            addLog("Netzwerkfehler: " + err.message, "error");
+        }
+    }
+
+    function toggleForm(id) {
+        const el = document.getElementById(id);
+        el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+    }
+</script>
+
+</body>
+</html>

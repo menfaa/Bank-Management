@@ -1,0 +1,63 @@
+plugins {
+   id 'org.springframework.boot' version '4.0.1'
+    id 'io.spring.dependency-management' version '1.1.4'
+    id 'java'
+}
+
+group = 'com.bank'
+version = '0.0.1-SNAPSHOT'
+description = 'Demo project for Spring Boot'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(17)
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+    implementation project(':bank-common')
+	 // Spring Boot Web for REST APIs
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    // Spring Data JPA for ORM
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+
+    // PostgreSQL JDBC Driver
+    runtimeOnly 'org.postgresql:postgresql:42.7.3'
+
+    // Flyway for database migrations
+    implementation 'org.flywaydb:flyway-core'
+
+    // jMolecules for DDD annotations
+    implementation 'org.jmolecules:jmolecules-ddd:1.7.0'
+
+    implementation 'org.springframework.boot:spring-boot-starter-kafka'
+
+	implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    implementation 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    implementation 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+
+
+
+    // H2 Database for in-memory testing (optional)
+    //runtimeOnly 'com.h2database:h2:2.2.224'
+
+    // Spring Boot Starter Test (JUnit, Mockito, @WebMvcTest, etc.)
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}

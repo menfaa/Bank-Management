@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Alle Girokonten</title>
+    <script src="http://localhost:8081/js/keycloak.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f4f7f6; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 8px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #007bff; color: white; }
+        tr:nth-child(even) { background: #f2f2f2; }
+        .konto-block { margin-bottom: 40px; border: 1px solid #ccc; border-radius: 8px; padding: 16px; background: #fff; }
+        h2 { margin-top: 0; color: #007bff; }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #6c757d;
+            color: white;
+            border-radius: 4px;
+            text-decoration: none;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        #loading { font-style: italic; color: #666; }
+    </style>
+</head>
+<body>
+   <div class="container">
+    <h1>Alle Girokonten</h1>
+    
+    <!-- Geändert: Nutzt die absolute URL zum Dashboard auf Port 9000 -->
+    <a href="http://localhost:9000" class="button">⬅ Zurück zum Dashboard</a>
+
+    <div id="loading">Initialisiere Authentifizierung...</div>
+    
+    <!-- Hier wird deine JavaScript-Funktion renderKonten(data) die Daten einfügen -->
+    <div id="konten-liste"></div>
+    </div>
+
+    <script>
+        const keycloak = new Keycloak({
+            url: 'http://localhost:8081/',
+            realm: 'myRealm',
+            clientId: 'girokonto-service'
+        });
+
+        keycloak.init({ onLoad: 'login-required' }).then(auth => {
+            if (auth) {
+                document.getElementById('loading').textContent = "Lade Kontodaten...";
+                loadGirokonten();
+            }
+        });
+
+        function loadGirokonten() {
+            keycloak.updateToken(30).then(() => {
+                fetch('http://localhost:9000/api/girokonten', {
+                    headers: { 'Authorization': 'Bearer ' + keycloak.token }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    renderKonten(data);
+                })
+                .catch(err => {
+                    document.getElementById('loading').textContent = "Fehler: " + err.message;
+                });
+            });
+        }
+
+        function renderKonten(girokonten) {
+            const container = document.getElementById('konten-liste');
+            const loading = document.getElementById('loading');
+            container.innerHTML = '';
+
+            if (girokonten.length === 0) {
+                container.innerHTML = '<p>Keine Girokonten gefunden.</p>';
+            }
+
+            girokonten.forEach(konto => {
+                // Erstellung der Kontoauszugs-Tabelle falls vorhanden
+                let auszügeHtml = '<p><em>Keine Kontoauszüge vorhanden.</em></p>';
+                
+                if (konto.kontoauszuege && konto.kontoauszuege.length > 0) {
+                    auszügeHtml = `
+                        <h3>Kontoauszüge</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>IBAN</th>
+                                    <th>Datum</th>
+                                    <th>Betrag</th>
+                                    <th>Verwendungszweck</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${konto.kontoauszuege.map(auszug => `
+                                    <tr>
+                                        <td>${auszug.girokontoIban.value}</td>
+                                        <td>${auszug.datum}</td>
+                                        <td>${auszug.betrag.wert || auszug.betrag} EUR</td>
+                                        <td>${auszug.verwendungszweck}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>`;
+                }
+
+                // Gesamter Block pro Konto (dein altes Design)
+                const block = `
+                    <div class="konto-block">
+                        <h2>IBAN: <span>${konto.iban.value}</span></h2>
+                        <p><strong>Inhaber:</strong> <span>${konto.inhaberId.value}</span></p>
+                        <p><strong>Kontostand:</strong> <span>${konto.kontostand.betrag.wert}</span> EUR</p>
+                        ${auszügeHtml}
+                    </div>`;
+                
+                container.innerHTML += block;
+            });
+            loading.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
