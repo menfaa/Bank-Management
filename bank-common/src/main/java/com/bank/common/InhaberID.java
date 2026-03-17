@@ -1,7 +1,5 @@
 package com.bank.common;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonValue;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 
@@ -21,12 +19,10 @@ public class InhaberID implements Serializable {
     protected InhaberID() {
     }
 
-    @JsonCreator
     public InhaberID(String value) {
         this.value = value;
     }
 
-    @JsonValue
     public String getValue() {
         return value;
     }

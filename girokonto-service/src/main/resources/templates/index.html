@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bank Dashboard - SEPA & Kartenzahlung</title>
-    <script src="http://localhost:8081/js/keycloak.js"></script>
+    <title>Bank Dashboard - Management & Zahlungen</title>
+    <!-- Icons & Keycloak -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net">
+    <script src="http://localhost:8081/js/keycloak.js"></script>
     
     <style>
         body { font-family: 'Segoe UI', sans-serif; padding: 20px; background-color: #f8f9fa; color: #333; }
@@ -24,11 +25,12 @@
         .btn-danger { background: #dc3545; }
         .btn-secondary { background: #6c757d; }
         .btn-purple { background: #6f42c1; }
+        .btn-info { background: #17a2b8; }
 
-        .form-container { display: none; margin-top: 20px; padding: 25px; background: #f8f9fa; border-left: 5px solid #6f42c1; border-radius: 0 8px 8px 0; box-shadow: inset 0 0 10px rgba(0,0,0,0.05); }
-        input, select { display: block; width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ced4da; border-radius: 6px; }
+        .form-container { display: none; margin-top: 20px; padding: 25px; background: #f8f9fa; border-left: 5px solid #007bff; border-radius: 0 8px 8px 0; box-shadow: inset 0 0 10px rgba(0,0,0,0.05); }
+        input, select { display: block; width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ced4da; border-radius: 6px; box-sizing: border-box; }
         
-        #output { background: #212529; color: #00ff41; padding: 20px; border-radius: 8px; font-family: 'Consolas', monospace; height: 200px; overflow-y: auto; white-space: pre-wrap; font-size: 0.9rem; margin-top: 10px; }
+        #output { background: #212529; color: #00ff41; padding: 20px; border-radius: 8px; font-family: 'Consolas', monospace; height: 200px; overflow-y: auto; white-space: pre-wrap; font-size: 0.9rem; margin-top: 10px; border: 1px solid #444; }
         .hidden { display: none; }
     </style>
 </head>
@@ -42,37 +44,64 @@
             <span id="auth-status-dot" class="status-dot" style="background: #dc3545;"></span>
             <span id="auth-text" class="fw-bold">Nicht verbunden</span> | <span id="user-name">Warte auf Login...</span>
         </div>
-        <button class="btn-danger btn-sm" onclick="keycloak.logout()"><i class="bi bi-box-arrow-right"></i> Abmelden</button>
+        <button class="btn-danger" style="padding: 5px 15px;" onclick="keycloak.logout()"><i class="bi bi-box-arrow-right"></i> Logout</button>
     </div>
 
     <div class="button-row">
-        <button class="btn-primary" onclick="window.location.href='http://localhost:9000/girokonten'"><i class="bi bi-list-ul"></i> Girokonten</button>
-        <button class="btn-secondary" onclick="window.location.href='http://localhost:9001/inhaber'"><i class="bi bi-people"></i> Inhaber</button>
+        <!-- Navigation Buttons -->
+        <button class="btn-secondary" onclick="window.location.href='http://localhost:9000/girokonten'"><i class="bi bi-list-ul"></i> Alle Konten</button>
+        <button class="btn-secondary" onclick="window.location.href='http://localhost:9001/inhaber'"><i class="bi bi-people"></i> Alle Inhaber</button>
+        
+        <!-- Action Buttons -->
+        <button class="btn-success" onclick="toggleForm('inhaber-form')"><i class="bi bi-person-plus"></i> Neuer Inhaber</button>
+        <button class="btn-info" onclick="toggleForm('girokonto-form')"><i class="bi bi-plus-circle"></i> Neues Konto</button>
         <button class="btn-purple" onclick="toggleForm('zahlung-form')"><i class="bi bi-currency-euro"></i> Neue Zahlung</button>
     </div>
 
-    <!-- Formular: Zahlungsservice -->
-    <div id="zahlung-form" class="form-container">
-        <h3><i class="bi bi-credit-card-2-back me-2"></i>Zahlung ausführen</h3>
+    <!-- Formular: Neuer Inhaber (Kunden-Service Port 9001) -->
+    <div id="inhaber-form" class="form-container" style="border-left-color: #28a745; display: block;">
+        <h3><i class="bi bi-person-plus me-2"></i>Inhaber anlegen</h3>
         
-        <label>Zahlungsart wählen:</label>
+        <!-- Neues Feld für die ID -->
+        <label for="inhaber-id-input" style="font-size: 0.8rem; color: #666;">Inhaber-ID:</label>
+        <input type="text" id="inhaber-id-input" placeholder="z.B. Inhaber123">
+        
+        <!-- Feld für den Namen -->
+        <label for="inhaber-name" style="font-size: 0.8rem; color: #666;">Name:</label>
+        <input type="text" id="inhaber-name" placeholder="Vollständiger Name des Inhabers">
+        
+        <div class="button-row">
+            <button class="btn-success" onclick="createInhaber()">Speichern</button>
+            <button class="btn-secondary" onclick="toggleForm('inhaber-form')">Abbrechen</button>
+        </div>
+    </div>
+
+    <!-- Formular: Neues Girokonto (Girokonto-Service Port 9000) -->
+    <div id="girokonto-form" class="form-container" style="border-left-color: #17a2b8;">
+        <h3><i class="bi bi-plus-circle me-2"></i>Konto eröffnen</h3>
+        <input type="text" id="new-iban" placeholder="Neue IBAN (z.B. DE12345...)">
+        <input type="text" id="new-inhaber-id" placeholder="Inhaber-ID (UUID)">
+        <div class="button-row">
+            <button class="btn-info" onclick="createGirokonto()">Konto erstellen</button>
+            <button class="btn-secondary" onclick="toggleForm('girokonto-form')">Abbrechen</button>
+        </div>
+    </div>
+
+    <!-- Formular: Zahlungsservice -->
+    <div id="zahlung-form" class="form-container" style="border-left-color: #6f42c1;">
+        <h3><i class="bi bi-credit-card-2-back me-2"></i>Zahlung ausführen</h3>
         <select id="zahlungsart" onchange="updateZahlungsFelder()">
             <option value="sepa">SEPA Überweisung</option>
             <option value="karte">Kartenzahlung</option>
         </select>
-
-        <!-- Gemeinsame Felder -->
-        <input type="text" id="main-iban" placeholder="Deine IBAN (Girokonto)">
+        <input type="text" id="main-iban" placeholder="Deine IBAN (Absender)">
         <input type="number" id="betrag" placeholder="Betrag in €" step="0.01">
         <input type="text" id="zweck" placeholder="Verwendungszweck">
 
-        <!-- SEPA Spezifisch -->
         <div id="sepa-fields">
             <input type="text" id="empfaenger-iban" placeholder="Empfänger IBAN">
             <input type="text" id="empfaenger-name" placeholder="Empfänger Name">
         </div>
-
-        <!-- Karte Spezifisch -->
         <div id="karte-fields" class="hidden">
             <input type="text" id="kartennummer" placeholder="Kartennummer (optional)">
             <input type="text" id="haendler" placeholder="Händler Name">
@@ -91,16 +120,18 @@
 </div>
 
 <script>
+    // Konfiguration
     const keycloak = new Keycloak({ url: 'http://localhost:8081/', realm: 'myRealm', clientId: 'girokonto-service' });
 
     function addLog(msg, type = 'info') {
         const out = document.getElementById('output');
         const time = new Date().toLocaleTimeString();
         if (out.textContent.includes("Initialisiere")) out.textContent = "";
-        out.textContent += `[${time}] ${type === 'error' ? '❌' : '🔹'} ${msg}\n`;
+        out.textContent += `[${time}] ${type === 'error' ? '❌' : (type === 'success' ? '✅' : '🔹')} ${msg}\n`;
         out.scrollTop = out.scrollHeight;
     }
 
+    // Keycloak Init
     keycloak.init({ onLoad: 'login-required', checkLoginIframe: false }).then(auth => {
         if (auth) {
             document.getElementById('auth-status-dot').style.background = "#28a745";
@@ -108,23 +139,93 @@
             document.getElementById('user-name').textContent = "User: " + keycloak.tokenParsed.preferred_username;
             addLog("Authentifizierung erfolgreich.");
         }
-    });
+    }).catch(() => addLog("Fehler bei der Authentifizierung", "error"));
+
+    function toggleForm(id) {
+        const forms = document.querySelectorAll('.form-container');
+        forms.forEach(f => { if(f.id !== id) f.style.display = 'none'; });
+        const el = document.getElementById(id);
+        el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+    }
 
     function updateZahlungsFelder() {
         const art = document.getElementById('zahlungsart').value;
         document.getElementById('sepa-fields').classList.toggle('hidden', art !== 'sepa');
         document.getElementById('karte-fields').classList.toggle('hidden', art !== 'karte');
-        addLog(`Zahlungsart auf ${art} geändert.`);
     }
 
+    // NEU: Inhaber erstellen
+    async function createInhaber() {
+        const customId = document.getElementById('inhaber-id-input').value;
+        const name = document.getElementById('inhaber-name').value;
+        
+        if(!customId || !name) {
+            return addLog("Bitte ID und Namen eingeben!", "error");
+        }
+
+        const payload = {
+            inhaberId: { value: customId },
+            name: name
+        };
+
+        try {
+            // WICHTIG: Token aktualisieren, bevor wir senden
+            await keycloak.updateToken(30);
+
+            const response = await fetch('http://localhost:9001/api/inhaber', {
+                method: 'POST',
+                headers: { 
+                    'Authorization': 'Bearer ' + keycloak.token, // HIER den Token mitsenden!
+                    'Content-Type': 'application/json' 
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                const data =  await response.text();
+                addLog(`ERFOLG: Inhaber ${data.name} erstellt.`, "success");
+                toggleForm('inhaber-form');
+            } else {
+                const errorText = await response.text(); 
+                addLog(`SERVER-FEHLER (${response.status}): ${errorText || 'Keine Details'}`, "error");
+            }
+        } catch (err) {
+            addLog("NETZWERK-FEHLER: " + err.message, "error");
+        }
+    }
+
+    // NEU: Girokonto erstellen
+    async function createGirokonto() {
+        const iban = document.getElementById('new-iban').value;
+        const inhaberId = document.getElementById('new-inhaber-id').value;
+        if(!iban || !inhaberId) return addLog("Daten unvollständig!", "error");
+
+        try {
+            await keycloak.updateToken(30);
+            const response = await fetch('http://localhost:9000/api/girokonten', {
+                method: 'POST',
+                headers: { 
+                    'Authorization': 'Bearer ' + keycloak.token,
+                    'Content-Type': 'application/json' 
+                },
+                body: JSON.stringify({ ibanValue: iban, inhaberIdValue: inhaberId })
+            });
+            if (response.ok) {
+                addLog(`Konto ${iban} erfolgreich eröffnet.`, "success");
+                toggleForm('girokonto-form');
+                document.getElementById('new-iban').value = "";
+                document.getElementById('new-inhaber-id').value = "";
+            } else {
+                addLog("Fehler beim Erstellen des Kontos", "error");
+            }
+        } catch (err) { addLog("Netzwerkfehler: " + err.message, "error"); }
+    }
+
+    // Zahlung ausführen
     async function executePayment() {
         const art = document.getElementById('zahlungsart').value;
         const iban = document.getElementById('main-iban').value;
-        
-        if (!iban) {
-            addLog("FEHLER: Bitte gib deine IBAN an!", "error");
-            return;
-        }
+        if (!iban) return addLog("Absender IBAN fehlt!", "error");
 
         const payload = {
             betrag: { wert: parseFloat(document.getElementById('betrag').value) },
@@ -132,21 +233,15 @@
             datum: new Date().toISOString().split('T')[0]
         };
 
-        // Dynamische URL basierend auf der IBAN und Zahlungsart
-        let endpoint = `http://localhost:9000/api/girokonten/${iban}/`;
-        
+        let endpoint = `http://localhost:9000/api/girokonten/${iban}/` + (art === 'sepa' ? 'sepapayment' : 'kartenpayment');
         if (art === 'sepa') {
-            endpoint += 'sepapayment';
             payload.empfaengerIban = document.getElementById('empfaenger-iban').value;
             payload.empfaengerName = document.getElementById('empfaenger-name').value;
         } else {
-            endpoint += 'kartenpayment';
             payload.kartennummer = document.getElementById('kartennummer').value;
             payload.haendler = document.getElementById('haendler').value;
         }
 
-        addLog(`Sende Request an: ${endpoint}`);
-        
         try {
             await keycloak.updateToken(30);
             const response = await fetch(endpoint, {
@@ -159,21 +254,12 @@
             });
 
             if (response.ok) {
-                addLog(`ERFOLG: ${art.toUpperCase()} wurde ausgeführt.`, "success");
+                addLog(`Zahlung (${art}) erfolgreich gesendet!`, "success");
             } else {
-                const errorData = await response.text();
-                addLog(`SERVER-FEHLER (${response.status}): ${errorData}`, "error");
+                addLog(`Fehler: ${await response.text()}`, "error");
             }
-        } catch (err) {
-            addLog("Netzwerkfehler: " + err.message, "error");
-        }
-    }
-
-    function toggleForm(id) {
-        const el = document.getElementById(id);
-        el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+        } catch (err) { addLog("Netzwerkfehler: " + err.message, "error"); }
     }
 </script>
-
 </body>
 </html>
