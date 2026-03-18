@@ -1,1 +1,4 @@
- .gradle/**/**/**
+# Gradle build cache und temporäre Dateien
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
