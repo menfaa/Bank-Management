@@ -1,30 +1,39 @@
 package com.bank.zahlung.domain;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
+import jakarta.persistence.Column; // JPA: Für Spaltenzuordnung
+import jakarta.persistence.DiscriminatorValue; // JPA: Diskriminatorwert für Vererbung
+import jakarta.persistence.Entity; // JPA: Markiert die Klasse als Entity
 import java.time.LocalDate;
 
 import com.bank.common.Betrag;
 
-@Entity
-@DiscriminatorValue("KARTE")
+/**
+ * Entity für eine Kartenzahlung.
+ * Erbt von Zahlung und speichert zusätzliche Felder wie Kartennummer und Händler.
+ */
+@Entity // JPA: Markiert die Klasse als persistierbare Entity (Tabelle in der Datenbank)
+@DiscriminatorValue("KARTE") // JPA: Diskriminatorwert für Vererbung (Single Table Inheritance)
 public class Kartenzahlung extends Zahlung {
 
-    @Column(nullable = false)
-    private String girokontoIban;
+    @Column(nullable = false) // JPA: Spalte darf nicht null sein
+    private String girokontoIban; // IBAN des zugehörigen Girokontos
 
-    @Column(nullable = true)
-    private String kartennummer;
+    @Column(nullable = true) // JPA: Spalte darf null sein (optional)
+    private String kartennummer; // Kartennummer (optional)
 
-    @Column(nullable = true)
-    private String haendler;
+    @Column(nullable = true) // JPA: Spalte darf null sein (optional)
+    private String haendler; // Händler (optional)
 
-    // Der von Hibernate benötigte Standardkonstruktor
+    /**
+     * Standardkonstruktor für Hibernate (geschützt).
+     */
     protected Kartenzahlung() {
         super();
     }
 
+    /**
+     * Konstruktor für eine neue Kartenzahlung.
+     */
     public Kartenzahlung(String girokontoIban, LocalDate datum, Betrag betrag, String verwendungszweck,
             String kartennummer, String haendler) {
         super(betrag, datum, verwendungszweck, Zahlungsart.KARTE);

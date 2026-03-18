@@ -1,0 +1,40 @@
+Teilnehmer: User, Web Dashboard, Keycloak, Girokonto-Service, Kafka, Zahlungs-Service, Zahlungs-DB
+
+1. User öffnet das Web Dashboard und loggt sich über Keycloak ein.
+   User -> Web Dashboard: Login (UI)
+   Web Dashboard -> Keycloak: Authentifizierung (OAuth2)
+   Keycloak -> Web Dashboard: JWT Token
+
+2. User löst eine SEPA-Zahlung aus.
+   User -> Web Dashboard: SEPA-Zahlung ausfüllen und absenden
+   Web Dashboard -> Girokonto-Service: REST POST /api/girokonten/{iban}/sepapayment (mit JWT)
+
+3. Girokonto-Service prüft Authentifizierung und verarbeitet die Anfrage.
+   Girokonto-Service -> DDD: Strategy (SepaPaymentStrategy)
+   DDD -> Kafka: Sende PaymentRequestedEvent (Topic: payment-requested, TCP)
+
+4. Kafka verteilt das Event an alle Subscriber.
+   Kafka -> Zahlungs-Service: PaymentRequestedEvent empfangen
+
+5. Zahlungs-Service verarbeitet das Event.
+   Zahlungs-Service -> DDD: Factory (SEPAUeberweisung anlegen)
+   DDD -> Zahlungs-DB: Speichere SEPAUeberweisung (JDBC)
+   Zahlungs-Service -> Kafka: Sende PaymentCompletedEvent (Topic: payment-completed, TCP)
+
+6. Kafka verteilt das Event an alle Subscriber.
+   Kafka -> Girokonto-Service: PaymentCompletedEvent empfangen
+
+7. Girokonto-Service verarbeitet das Event.
+   Girokonto-Service -> DDD: Observer (addKontoauszugNachZahlung)
+   DDD -> Girokonto-DB: Kontoauszug speichern (JDBC)
+
+8. Web Dashboard kann nach kurzer Zeit den neuen Kontoauszug anzeigen.
+   Web Dashboard -> Girokonto-Service: REST GET /api/girokonten/{iban}
+   Girokonto-Service -> Girokonto-DB: Konto und Auszüge lesen
+   Girokonto-Service -> Web Dashboard: Kontodaten inkl. neuem Auszug
+
+Legende:
+- REST = HTTP(S) Request
+- DDD = Domain Driven Design Bausteine (Strategy, Factory, Observer)
+- Kafka = Event-Kommunikation (TCP)
+- JDBC = Datenbankzugriff

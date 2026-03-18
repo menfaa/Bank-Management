@@ -4,14 +4,19 @@ import java.time.LocalDate;
 
 import com.bank.common.Betrag;
 
+/**
+ * Data Transfer Object (DTO) für Zahlungsanfragen.
+ * Enthält alle notwendigen Informationen für eine Zahlungsanforderung,
+ * z.B. Betrag, Verwendungszweck, Kartendaten und Empfängerdaten.
+ */
 public class PaymentRequestDTO {
-    private Betrag betrag;
-    private String verwendungszweck;
-    private String kartennummer;
-    private String haendler;
-    private LocalDate datum;
-    private String empfaengerIban;
-    private String empfaengerName;
+    private Betrag betrag; // Der zu zahlende Betrag
+    private String verwendungszweck; // Verwendungszweck der Zahlung
+    private String kartennummer; // Kartennummer (bei Kartenzahlung)
+    private String haendler; // Händler (bei Kartenzahlung)
+    private LocalDate datum; // Datum der Zahlung
+    private String empfaengerIban; // IBAN des Empfängers (bei Überweisung)
+    private String empfaengerName; // Name des Empfängers (bei Überweisung)
 
     // Getter/Setter
     public Betrag getBetrag() {

@@ -1,13 +1,20 @@
 package com.bank.kunde;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.SpringApplication; // Spring Boot: Startet die Anwendung
+import org.springframework.boot.autoconfigure.SpringBootApplication; // Spring Boot: Haupt-Annotation für Boot-Anwendungen
 
-@SpringBootApplication
+/**
+ * Einstiegspunkt für die Spring Boot Anwendung KundenService.
+ * Startet den eingebetteten Server und initialisiert den Spring Application Context.
+ */
+@SpringBootApplication // Spring Boot: Markiert die Hauptklasse und aktiviert Auto-Konfiguration, Komponenten-Scan etc.
 public class KundenServiceApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(KundenServiceApplication.class, args);
-	}
+    /**
+     * Main-Methode: Startet die Spring Boot Anwendung.
+     */
+    public static void main(String[] args) {
+        SpringApplication.run(KundenServiceApplication.class, args);
+    }
 
 }

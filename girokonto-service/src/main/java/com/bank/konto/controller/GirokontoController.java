@@ -1,41 +1,41 @@
-package com.bank.konto.controller;
+package com.bank.konto.controller; // Definiert das Package, in dem sich die Klasse befindet
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.beans.factory.annotation.Value; // Importiert die Annotation für das Einlesen von Properties
+import org.springframework.kafka.core.KafkaTemplate; // Importiert KafkaTemplate für das Senden von Events
+import org.springframework.security.core.context.SecurityContextHolder; // Importiert SecurityContextHolder für Security-Kontext
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken; // Importiert JWT-Token-Klasse
+import org.springframework.web.bind.annotation.*; // Importiert Spring Web-Annotationen
+import org.springframework.web.client.HttpClientErrorException; // Importiert Exception für HTTP-Fehler
+import org.springframework.web.client.RestTemplate; // Importiert RestTemplate für HTTP-Anfragen
 
-import com.bank.common.IBAN;
-import com.bank.common.events.PaymentRequestedEvent;
-import com.bank.konto.PaymentRequestDTO;
-import com.bank.konto.domain.Girokonto;
-import com.bank.konto.execptions.NoGirokontoFoundException;
-import com.bank.konto.service.GirokontoService;
-import com.bank.konto.strategy.KartenPaymentStrategy;
-import com.bank.konto.strategy.PaymentStrategy;
+import com.bank.common.IBAN; // Importiert die IBAN-Klasse
+import com.bank.common.events.PaymentRequestedEvent; // Importiert das Event für Zahlungsanfragen
+import com.bank.konto.PaymentRequestDTO; // Importiert das DTO für Zahlungsanfragen
+import com.bank.konto.domain.Girokonto; // Importiert die Girokonto-Klasse
+import com.bank.konto.execptions.NoGirokontoFoundException; // Importiert die Exception für nicht gefundene Konten
+import com.bank.konto.service.GirokontoService; // Importiert den Service für Girokonten
+import com.bank.konto.strategy.KartenPaymentStrategy; // Importiert die Karten-Zahlungsstrategie
+import com.bank.konto.strategy.PaymentStrategy; // Importiert das PaymentStrategy-Interface
 
-import org.springframework.http.*;
-import java.time.LocalDate;
-import java.util.Optional;
+import org.springframework.http.*; // Importiert HTTP-Klassen
+import java.time.LocalDate; // Importiert LocalDate für Datumsangaben
+import java.util.Optional; // Importiert Optional für optionale Rückgaben
 
-@RestController
-@RequestMapping("/api/girokonten")
-@CrossOrigin(origins = "http://localhost:3000") // Erlaubt Zugriff vom React-Frontend
+@RestController // Markiert die Klasse als REST-Controller
+@RequestMapping("/api/girokonten") // Basis-URL für alle Endpunkte dieser Klasse
+@CrossOrigin(origins = "http://localhost:3000") // Erlaubt CORS-Zugriff vom React-Frontend
 public class GirokontoController {
 
-    private final GirokontoService service;
+    private final GirokontoService service; // Service für Girokonten
 
-    private RestTemplate restTemplate;
+    private RestTemplate restTemplate; // RestTemplate für HTTP-Anfragen
 
-    private final KafkaTemplate<String, PaymentRequestedEvent> kafkaTemplate;
+    private final KafkaTemplate<String, PaymentRequestedEvent> kafkaTemplate; // KafkaTemplate für Events
 
-    @Value("${kunden.service.url}")
+    @Value("${kunden.service.url}") // Liest die URL des Kunden-Services aus den Properties
     private String kundenServiceUrl;
 
+    // Konstruktor für Dependency Injection
     public GirokontoController(GirokontoService service, RestTemplate restTemplate,
             KafkaTemplate<String, PaymentRequestedEvent> kafkaTemplate) {
         this.service = service;
@@ -55,7 +55,7 @@ public class GirokontoController {
         return service.findByIban(iban.getValue());
     }
 
-    // Einzelnes Girokonto per IBAN abrufen
+    // Einzelnes Girokonto mit Kontoauszügen per IBAN abrufen
     @GetMapping("/kontoauszuege/{iban}")
     public Optional<Girokonto> kontoByIbanithKontoauszuege(@PathVariable String iban) {
         return service.findByIbanWithKontoauszuege(iban);
@@ -107,6 +107,7 @@ public class GirokontoController {
         }
     }
 
+    // Karten-Zahlung anfragen
     @PostMapping("/{iban}/kartenpayment")
     public void requestPayment(
             @PathVariable String iban,
@@ -123,6 +124,7 @@ public class GirokontoController {
         // Lade das Girokonto
         Girokonto girokonto = service.findByIban(iban);
 
+        // Setze die Karten-Zahlungsstrategie
         PaymentStrategy strategy = new KartenPaymentStrategy(event.getKartennummer(),
                 event.getHaendler(),
                 kafkaTemplate);
@@ -135,9 +137,9 @@ public class GirokontoController {
         service.deleteByIban(iban.getValue());
     }
 
+    // Exception-Handler für nicht gefundene Konten
     @ExceptionHandler(NoGirokontoFoundException.class)
     public ResponseEntity<String> handleNoGirokontoFoundException(NoGirokontoFoundException ex) {
-
         return ResponseEntity.internalServerError().body("No Girokonto found with iban: " + ex.getIban().getValue());
     }
 }

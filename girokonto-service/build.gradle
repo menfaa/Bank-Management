@@ -1,69 +1,71 @@
 plugins {
-   id 'org.springframework.boot' version '4.0.1'
-    id 'io.spring.dependency-management' version '1.1.4'
-    id 'java'
+    id 'org.springframework.boot' version '4.0.1' // Spring Boot Plugin für einfaches Spring Boot Build/Run
+    id 'io.spring.dependency-management' version '1.1.4' // Verwaltung von Abhängigkeiten und deren Versionen
+    id 'java' // Java Plugin für Java-Projekte
 }
 
-group = 'com.bank'
-version = '0.0.1-SNAPSHOT'
-description = 'Demo project for Spring Boot'
+group = 'com.bank' // Maven-Gruppen-ID (Namespace für das Projekt)
+version = '0.0.1-SNAPSHOT' // Projektversion
+description = 'Demo project for Spring Boot' // Beschreibung des Projekts
 
 java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(17)
-	}
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17) // Verwendete Java-Version (hier: 17)
+    }
 }
 
 repositories {
-	mavenCentral()
+    mavenCentral() // Zentrale Maven-Repository für Abhängigkeiten
 }
 
 springBoot {
-    mainClass = 'com.bank.konto.GirokontoServiceApplication'
+    mainClass = 'com.bank.konto.GirokontoServiceApplication' // Hauptklasse für Spring Boot (Startpunkt)
 }
 
 dependencies {
-    implementation project(':bank-common')
-	 // Spring Boot Web for REST APIs
+    implementation project(':bank-common') // Abhängigkeit zum eigenen bank-common Modul
+
+    // Spring Boot Web für REST APIs
     implementation 'org.springframework.boot:spring-boot-starter-web'
 
-    // Spring Data JPA for ORM
+    // Spring Data JPA für ORM (Objekt-Relationales Mapping)
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 
+    // Thymeleaf für serverseitiges HTML-Templating
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 
-    // PostgreSQL JDBC Driver
+    // PostgreSQL JDBC-Treiber für Verbindung zur PostgreSQL-Datenbank
     runtimeOnly 'org.postgresql:postgresql:42.7.3'
 
-    // Flyway for database migrations
+    // Flyway für Datenbankmigrationen (Versionierung von SQL-Skripten)
     implementation 'org.flywaydb:flyway-core'
 
-    // jMolecules for DDD annotations
+    // jMolecules für DDD-Annotationen (Domain Driven Design)
     implementation 'org.jmolecules:jmolecules-ddd:1.7.0'
 
+    // Spring Boot Kafka für Messaging/Eventing
     implementation 'org.springframework.boot:spring-boot-starter-kafka'
 
+    // Jackson-Modul für Java 8 Date/Time API (z.B. LocalDate)
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 
+    // JWT (JSON Web Token) für Authentifizierung und Autorisierung
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
     implementation 'io.jsonwebtoken:jjwt-impl:0.11.5'
     implementation 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 
+    // Spring Security und OAuth2 Resource Server für Authentifizierung/Autorisierung
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
     implementation 'org.springframework.boot:spring-boot-starter-security'
 
-
-
-    // H2 Database for in-memory testing (optional)
+    // H2 In-Memory-Datenbank für Tests (optional, auskommentiert)
     //runtimeOnly 'com.h2database:h2:2.2.224'
 
     // Spring Boot Starter Test (JUnit, Mockito, @WebMvcTest, etc.)
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
-
-
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+    useJUnitPlatform() // Nutzt JUnit 5 (Jupiter) als Testplattform
 }

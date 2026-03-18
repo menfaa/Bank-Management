@@ -1,0 +1,77 @@
++-------------------+         +-------------------+         +-------------------+
+|                   |         |                   |         |                   |
+|   Web Dashboard   +-------->+    Keycloak       +<--------+   User Login      |
+|   (Frontend)      |  (REST) | (Auth Server)     |         |                   |
+|                   |         |                   |         |                   |
++--------+----------+         +---------+---------+         +-------------------+
+         |                              ^
+         |                              |
+         v                              |
++--------+----------+         +---------+---------+
+|                   |         |                   |
+| Girokonto-Service +<------->+   Girokonto-DB    |
+| (Spring Boot,     |  (JDBC) | (PostgreSQL)      |
+|  REST API, DDD)   |         +-------------------+
+|                   |
+|  [DDD:            |
+|   - Aggregate     |
+|   - ValueObject   |
+|   - Events        |
+|   - Repository    |
+|   - Factory       |
+|   - Strategy      |
+|   - Observer      |
+|  ]                |
++--------+----------+
+         |
+         | REST (z.B. Konto anlegen, Zahlung auslösen)
+         v
++--------+----------+
+|                   |
+|   Kafka-Broker    |  <-------------------+
+|   (Event Bus,     |                       |
+|    TCP 9092/9093) |                       |
++--------+----------+                       |
+         |                                  |
+         |                                  |
+         | Kafka-Events (TCP)               |
+         v                                  |
++-------------------+        +-------------------+
+| Zahlungs-Service  |        | Kunden-Service    |
+| (Spring Boot,     |        | (Spring Boot,     |
+|  Payment, Kafka)  |        |  Inhaber, Kafka)  |
+|                   |        |                   |
+|  [DDD:            |        |  [DDD:            |
+|   - Aggregate     |        |   - Aggregate     |
+|   - ValueObject   |        |   - ValueObject   |
+|   - Events        |        |   - Events        |
+|   - Repository    |        |   - Repository    |
+|   - Factory       |        |   - Factory       |
+|   - Strategy      |        |                   |
+|   - Observer      |        |                   |
+|  ]                |        |  ]                |
++--------+----------+        +--------+----------+
+         | JDBC                        | JDBC
+         v                             v
++-------------------+        +-------------------+
+| Zahlungs-DB       |        | Kunden-DB         |
+| (PostgreSQL)      |        | (PostgreSQL)      |
++-------------------+        +-------------------+
+
++-------------------+
+|      Flyway       |
+| (DB Migration)    |
++-------------------+
+         | (bei Start)
+         v
++-------------------+
+|   Alle Datenbanken|
++-------------------+
+
+Legende:
+- Pfeile zeigen Kommunikationsrichtung
+- REST = HTTP(S)
+- JDBC = Datenbankverbindung (TCP)
+- Kafka = Event-Kommunikation (TCP, Topics)
+- DDD-Konzepte (Aggregate, ValueObject, Events, Repository, Factory, Strategy, Observer) sind in den Spring Boot Services umgesetzt
+- Keycloak übernimmt Authentifizierung/Autorisierung für alle Services

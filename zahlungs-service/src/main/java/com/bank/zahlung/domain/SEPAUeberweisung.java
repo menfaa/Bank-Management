@@ -1,29 +1,39 @@
 package com.bank.zahlung.domain;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
+import jakarta.persistence.Column; // JPA: Für Spaltenzuordnung
+import jakarta.persistence.DiscriminatorValue; // JPA: Diskriminatorwert für Vererbung
+import jakarta.persistence.Entity; // JPA: Markiert die Klasse als Entity
 import java.time.LocalDate;
 
 import com.bank.common.Betrag;
 
-@Entity
-@DiscriminatorValue("SEPA")
+/**
+ * Entity für eine SEPA-Überweisung.
+ * Erbt von Zahlung und speichert zusätzliche Felder wie Auftraggeber- und Empfänger-IBAN sowie Empfängername.
+ */
+@Entity // JPA: Markiert die Klasse als persistierbare Entity (Tabelle in der Datenbank)
+@DiscriminatorValue("SEPA") // JPA: Diskriminatorwert für Vererbung (Single Table Inheritance)
 public class SEPAUeberweisung extends Zahlung {
 
-    @Column(nullable = true)
-    private String auftraggeberIban;
+    @Column(nullable = true) // JPA: Spalte darf null sein (optional)
+    private String auftraggeberIban; // IBAN des Auftraggebers
 
-    @Column(nullable = true)
-    private String empfaengerIban;
+    @Column(nullable = true) // JPA: Spalte darf null sein (optional)
+    private String empfaengerIban; // IBAN des Empfängers
 
-    @Column(nullable = true)
-    private String empfaengerName;
+    @Column(nullable = true) // JPA: Spalte darf null sein (optional)
+    private String empfaengerName; // Name des Empfängers
 
+    /**
+     * Standardkonstruktor für Hibernate.
+     */
     public SEPAUeberweisung() {
         super();
     }
 
+    /**
+     * Konstruktor für eine neue SEPA-Überweisung.
+     */
     public SEPAUeberweisung(String auftraggeberIban, String empfaengerIban, String empfaengerName,
             Betrag betrag, LocalDate datum, String verwendungszweck) {
         super(betrag, datum, verwendungszweck, Zahlungsart.SEPA);

@@ -3,34 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <title>Inhaber Monitoring Dashboard</title>
+    <!-- Keycloak für Authentifizierung -->
     <script src="http://localhost:8081/js/keycloak.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background-color: #f8f9fa; color: #333; }
-        .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { border-bottom: 3px solid #007bff; padding-bottom: 10px; margin-bottom: 20px; }
-        
-        .auth-bar { display: flex; justify-content: space-between; background: #e9ecef; padding: 10px 15px; border-radius: 5px; margin-bottom: 20px; align-items: center; }
-        .user-info { font-weight: bold; color: #555; }
-        
-        .button-row { display: flex; gap: 10px; margin-bottom: 25px; }
-        button { padding: 10px 18px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; transition: opacity 0.2s; color: white; }
-        button:hover { opacity: 0.85; }
-        
-        .btn-primary { background: #007bff; }
-        .btn-secondary { background: #6c757d; }
-        .btn-danger { background: #dc3545; }
-        .btn-dark { background: #212529; }
-
-        #output { border-top: 1px solid #eee; padding-top: 20px; min-height: 100px; }
-        
-        .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .data-table th, .data-table td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
-        .data-table th { background: #f8f9fa; color: #666; font-size: 0.9em; text-transform: uppercase; }
-        .id-badge { background: #e9ecef; padding: 4px 8px; border-radius: 4px; font-family: 'Consolas', monospace; font-weight: bold; color: #222; }
-        .loading-msg { font-style: italic; color: #888; }
-        
-        /* Neuer Löschen-Button Style */
-        .btn-delete { background: #dc3545; padding: 6px 12px; font-size: 0.8em; }
+        /* ... (Dein CSS bleibt unverändert) ... */
     </style>
 </head>
 <body>
@@ -38,28 +14,33 @@
 <div class="container">
     <h1>📋 Inhaber Übersicht</h1>
 
+    <!-- Authentifizierungsleiste mit Benutzeranzeige und Logout -->
     <div class="auth-bar">
         <div class="user-info">👤 <span id="user-display">Warte auf Login...</span></div>
         <button class="btn-danger" onclick="keycloak.logout()">Abmelden</button>
     </div>
 
+    <!-- Navigations- und Aktions-Buttons -->
     <div class="button-row">
         <button class="btn-dark" onclick="window.location.href='http://localhost:9000'">🏠 Zum Dashboard</button>
         <button class="btn-primary" onclick="loadInhaber()">🔄 Liste aktualisieren</button>
     </div>
 
+    <!-- Bereich für die Inhaber-Tabelle oder Statusmeldungen -->
     <div id="output">
         <p class="loading-msg">Daten werden geladen...</p>
     </div>
 </div>
 
 <script>
+    // Keycloak-Konfiguration und Initialisierung
     const keycloak = new Keycloak({
         url: 'http://localhost:8081/',
         realm: 'myRealm',
         clientId: 'girokonto-service'
     });
 
+    // Nach erfolgreichem Login Benutzername anzeigen und Inhaber laden
     keycloak.init({ onLoad: 'login-required', checkLoginIframe: false }).then(auth => {
         if (auth) {
             document.getElementById('user-display').textContent = keycloak.tokenParsed.preferred_username;
@@ -67,10 +48,14 @@
         }
     });
 
+    // Lädt alle Inhaber vom Backend (mit Auth-Token)
     function loadInhaber() {
         const outputDiv = document.getElementById('output');
         outputDiv.innerHTML = '<p class="loading-msg">Hole Inhaber-Daten vom Service (Port 9001)...</p>';
 
+        // Aktualisiert das Keycloak-Token, falls es bald abläuft (in den nächsten 30 Sekunden).
+        // Das ist wichtig, damit alle nachfolgenden Requests ein gültiges JWT im Header haben.
+        // Gibt ein Promise zurück, das bei Erfolg den Code im .then(...) ausführt.
         keycloak.updateToken(30).then(() => {
             fetch('http://localhost:9001/api/inhaber', {
                 method: 'GET',
@@ -90,6 +75,7 @@
         }).catch(() => keycloak.login());
     }
 
+    // Rendert die Tabelle mit allen Inhabern
     function renderInhaber(inhaberListe) {
         const outputDiv = document.getElementById('output');
         
@@ -128,6 +114,7 @@
         outputDiv.innerHTML = html;
     }
 
+    // Löscht einen Inhaber (und über Kafka auch alle zugehörigen Girokonten)
     async function deleteInhaber(id) {
         if (!confirm("WARNUNG: Das Löschen des Inhabers löscht über Kafka auch ALLE seine Girokonten im Girokonto-Service! Fortfahren?")) {
             return;

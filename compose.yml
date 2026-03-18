@@ -1,169 +1,166 @@
-services:
-  kafka:
-    image: apache/kafka:latest
+services: # Beginn der Service-Definitionen
+  kafka: # Kafka-Broker-Service
+    image: apache/kafka:latest # Verwendetes Docker-Image für Kafka
     ports:
-      - "9092:9092"
+      - "9092:9092" # Mappt Port 9092 des Containers auf Port 9092 des Hosts (externer Zugriff)
     environment:
-      KAFKA_NODE_ID: 1
-      KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: EXTERNAL://:9092,INTERNAL://:9093,CONTROLLER://:9094
-      # Hier wird definiert, wie Kafka von wo erreicht wird:
-      KAFKA_ADVERTISED_LISTENERS: EXTERNAL://localhost:9092,INTERNAL://kafka:9093
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9094
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181 
- # KRaft benötigt kein KAFKA_ZOOKEEPER_CONNECT
+      KAFKA_NODE_ID: 1 # Eindeutige ID für diesen Kafka-Knoten
+      KAFKA_PROCESS_ROLES: broker,controller # Rollen dieses Prozesses (Broker und Controller)
+      KAFKA_LISTENERS: EXTERNAL://:9092,INTERNAL://:9093,CONTROLLER://:9094 # Definiert Listener für verschiedene Zwecke
+      KAFKA_ADVERTISED_LISTENERS: EXTERNAL://localhost:9092,INTERNAL://kafka:9093 # Wie Kafka von außen und intern erreichbar ist
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT # Protokolle für die Listener
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL # Interner Listener-Name für die Broker-Kommunikation
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9094 # Controller-Quorum (nur ein Knoten)
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER # Name des Controller-Listeners
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1 # Replikationsfaktor für interne Topics (nur ein Broker)
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181 # Verbindung zu Zookeeper (bei KRaft nicht nötig)
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092"] # Testet, ob Kafka erreichbar ist
+      interval: 5s # Intervall zwischen Healthchecks
+      timeout: 5s # Timeout für einen Healthcheck
+      retries: 10 # Anzahl der Versuche bis als "unhealthy" markiert
 
-
-  girokonto-db:
-    image: postgres:15
+  girokonto-db: # PostgreSQL-Datenbank für Girokonto-Service
+    image: postgres:15 # Verwendetes Docker-Image für PostgreSQL
     environment:
-      POSTGRES_DB: girokonto
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: root
+      POSTGRES_DB: girokonto # Name der Datenbank
+      POSTGRES_USER: root # Benutzername
+      POSTGRES_PASSWORD: root # Passwort
     ports:
-      - "5432:5432"
+      - "5432:5432" # Mappt Port 5432 des Containers auf Port 5432 des Hosts
     volumes:
-      - girokonto-db-data:/var/lib/postgresql/data
+      - girokonto-db-data:/var/lib/postgresql/data # Persistentes Volume für Datenbankdaten
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U root -d girokonto"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "pg_isready -U root -d girokonto"] # Prüft, ob die DB bereit ist
+      interval: 10s # Intervall zwischen Healthchecks
+      timeout: 5s # Timeout für einen Healthcheck
+      retries: 5 # Anzahl der Versuche bis als "unhealthy" markiert
 
-  kunden-db:
-    image: postgres:15
+  kunden-db: # PostgreSQL-Datenbank für Kunden-Service
+    image: postgres:15 # Verwendetes Docker-Image für PostgreSQL
     environment:
-      POSTGRES_DB: inhaber
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: root
+      POSTGRES_DB: inhaber # Name der Datenbank
+      POSTGRES_USER: root # Benutzername
+      POSTGRES_PASSWORD: root # Passwort
     ports:
-      - "5433:5432"
+      - "5433:5432" # Mappt Port 5432 des Containers auf Port 5433 des Hosts
     volumes:
-      - kunden-db-data:/var/lib/postgresql/data
+      - kunden-db-data:/var/lib/postgresql/data # Persistentes Volume für Datenbankdaten
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U root -d inhaber"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "pg_isready -U root -d inhaber"] # Prüft, ob die DB bereit ist
+      interval: 10s # Intervall zwischen Healthchecks
+      timeout: 5s # Timeout für einen Healthcheck
+      retries: 5 # Anzahl der Versuche bis als "unhealthy" markiert
 
-  zahlung-db:
-    image: postgres:15
+  zahlung-db: # PostgreSQL-Datenbank für Zahlungs-Service
+    image: postgres:15 # Verwendetes Docker-Image für PostgreSQL
     environment:
-      POSTGRES_DB: zahlung
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: root
+      POSTGRES_DB: zahlung # Name der Datenbank
+      POSTGRES_USER: root # Benutzername
+      POSTGRES_PASSWORD: root # Passwort
     ports:
-      - "5434:5432"
+      - "5434:5432" # Mappt Port 5432 des Containers auf Port 5434 des Hosts
     volumes:
-      - zahlung-db-data:/var/lib/postgresql/data
+      - zahlung-db-data:/var/lib/postgresql/data # Persistentes Volume für Datenbankdaten
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U root -d zahlung"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "pg_isready -U root -d zahlung"] # Prüft, ob die DB bereit ist
+      interval: 10s # Intervall zwischen Healthchecks
+      timeout: 5s # Timeout für einen Healthcheck
+      retries: 5 # Anzahl der Versuche bis als "unhealthy" markiert
 
-  keycloak:
-    image: quay.io/keycloak/keycloak:24.0.1
-    command: start-dev
+  keycloak: # Keycloak-Service für Authentifizierung
+    image: quay.io/keycloak/keycloak:24.0.1 # Verwendetes Docker-Image für Keycloak
+    command: start-dev # Startet Keycloak im Entwicklungsmodus
     environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloakdb
-      KC_DB_USERNAME: keycloakuser
-      KC_DB_PASSWORD: keycloakpass
+      KEYCLOAK_ADMIN: admin # Admin-Benutzername
+      KEYCLOAK_ADMIN_PASSWORD: admin # Admin-Passwort
+      KC_DB: postgres # Datenbanktyp
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloakdb # Verbindungs-URL zur Keycloak-Datenbank
+      KC_DB_USERNAME: keycloakuser # Benutzername für die Keycloak-DB
+      KC_DB_PASSWORD: keycloakpass # Passwort für die Keycloak-DB
     ports:
-      - "8081:8080"
+      - "8081:8080" # Mappt Port 8080 des Containers auf Port 8081 des Hosts
     depends_on:
       keycloak-db:
-        condition: service_healthy
+        condition: service_healthy # Startet erst, wenn die Keycloak-DB bereit ist
 
-  keycloak-db:
-    image: postgres:15
+  keycloak-db: # PostgreSQL-Datenbank für Keycloak
+    image: postgres:15 # Verwendetes Docker-Image für PostgreSQL
     environment:
-      POSTGRES_DB: keycloakdb
-      POSTGRES_USER: keycloakuser
-      POSTGRES_PASSWORD: keycloakpass
+      POSTGRES_DB: keycloakdb # Name der Datenbank
+      POSTGRES_USER: keycloakuser # Benutzername
+      POSTGRES_PASSWORD: keycloakpass # Passwort
     ports:
-      - "5435:5432"
+      - "5435:5432" # Mappt Port 5432 des Containers auf Port 5435 des Hosts
     volumes:
-      - keycloak-db-data:/var/lib/postgresql/data
+      - keycloak-db-data:/var/lib/postgresql/data # Persistentes Volume für Datenbankdaten
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U keycloakuser -d keycloakdb"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "pg_isready -U keycloakuser -d keycloakdb"] # Prüft, ob die DB bereit ist
+      interval: 10s # Intervall zwischen Healthchecks
+      timeout: 5s # Timeout für einen Healthcheck
+      retries: 5 # Anzahl der Versuche bis als "unhealthy" markiert
 
-  girokonto-service:
-    build: ./girokonto-service
+  girokonto-service: # Spring Boot Microservice für Girokonten
+    build: ./girokonto-service # Baut das Image aus dem lokalen Verzeichnis
     ports:
-      - "9000:9000"
-      - "5005:5005" # Debug-Port
+      - "9000:9000" # Mappt Port 9000 des Containers auf Port 9000 des Hosts
+      - "5005:5005" # Debug-Port für Remote-Debugging
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://girokonto-db:5432/girokonto
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9093
-      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
-      KUNDEN_SERVICE_URL: http://kunden-service:9001/api/inhaber/
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/myRealm/protocol/openid-connect/certs
+      SPRING_DATASOURCE_URL: jdbc:postgresql://girokonto-db:5432/girokonto # DB-URL für Spring Boot
+      SPRING_DATASOURCE_USERNAME: root # DB-Benutzername
+      SPRING_DATASOURCE_PASSWORD: root # DB-Passwort
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9093 # Kafka-Broker-Adresse (intern)
+      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005" # Debug-Optionen
+      KUNDEN_SERVICE_URL: http://kunden-service:9001/api/inhaber/ # URL zum Kunden-Service
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/myRealm/protocol/openid-connect/certs # Keycloak JWK-URI
     depends_on:
       girokonto-db:
-        condition: service_healthy
+        condition: service_healthy # Startet erst, wenn die DB bereit ist
       kafka:
-        condition: service_started
+        condition: service_started # Startet erst, wenn Kafka läuft
       keycloak:
-        condition: service_started
+        condition: service_started # Startet erst, wenn Keycloak läuft
       kunden-service:
-        condition: service_started
+        condition: service_started # Startet erst, wenn Kunden-Service läuft
 
-  kunden-service:
-    build: ./kunden-service
+  kunden-service: # Spring Boot Microservice für Kunden/Inhaber
+    build: ./kunden-service # Baut das Image aus dem lokalen Verzeichnis
     ports:
-      - "9001:9001"
+      - "9001:9001" # Mappt Port 9001 des Containers auf Port 9001 des Hosts
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://kunden-db:5432/inhaber
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9093
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/myRealm/protocol/openid-connect/certs
+      SPRING_DATASOURCE_URL: jdbc:postgresql://kunden-db:5432/inhaber # DB-URL für Spring Boot
+      SPRING_DATASOURCE_USERNAME: root # DB-Benutzername
+      SPRING_DATASOURCE_PASSWORD: root # DB-Passwort
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9093 # Kafka-Broker-Adresse (intern)
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/myRealm/protocol/openid-connect/certs # Keycloak JWK-URI
     depends_on:
       kunden-db:
-        condition: service_healthy
+        condition: service_healthy # Startet erst, wenn die DB bereit ist
       kafka:
-        condition: service_started
+        condition: service_started # Startet erst, wenn Kafka läuft
       keycloak:
-        condition: service_started
+        condition: service_started # Startet erst, wenn Keycloak läuft
 
-  zahlungs-service:
-    build: ./zahlungs-service
+  zahlungs-service: # Spring Boot Microservice für Zahlungen
+    build: ./zahlungs-service # Baut das Image aus dem lokalen Verzeichnis
     ports:
-      - "9002:9002"
+      - "9002:9002" # Mappt Port 9002 des Containers auf Port 9002 des Hosts
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://zahlung-db:5432/zahlung
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9093
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/myRealm/protocol/openid-connect/certs
+      SPRING_DATASOURCE_URL: jdbc:postgresql://zahlung-db:5432/zahlung # DB-URL für Spring Boot
+      SPRING_DATASOURCE_USERNAME: root # DB-Benutzername
+      SPRING_DATASOURCE_PASSWORD: root # DB-Passwort
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9093 # Kafka-Broker-Adresse (intern)
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/myRealm/protocol/openid-connect/certs # Keycloak JWK-URI
     depends_on:
       zahlung-db:
-        condition: service_healthy
+        condition: service_healthy # Startet erst, wenn die DB bereit ist
       kafka:
-        condition: service_started
+        condition: service_started # Startet erst, wenn Kafka läuft
       keycloak:
-        condition: service_started
+        condition: service_started # Startet erst, wenn Keycloak läuft
 
-volumes:
-  girokonto-db-data:
-  kunden-db-data:
-  zahlung-db-data:
-  keycloak-db-data:
+volumes: # Definition der persistenten Volumes
+  girokonto-db-data: # Volume für Girokonto-DB
+  kunden-db-data:    # Volume für Kunden-DB
+  zahlung-db-data:   # Volume für Zahlungs-DB
+  keycloak-db-data:  # Volume für Keycloak-DB

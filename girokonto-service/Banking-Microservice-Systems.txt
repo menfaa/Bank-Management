@@ -1,0 +1,65 @@
++-------------------+         +-------------------+         +-------------------+
+|                   |         |                   |         |                   |
+|   Web Dashboard   +-------->+    Keycloak       +<--------+   User Login      |
+|   (Frontend)      |  (REST) | (Auth Server)     |         |                   |
+|                   |         |                   |         |                   |
++--------+----------+         +---------+---------+         +-------------------+
+         |                              ^
+         |                              |
+         v                              |
++--------+----------+         +---------+---------+
+|                   |         |                   |
+| Girokonto-Service +<------->+   PostgreSQL DB   |
+| (Spring Boot,     |  (JDBC) |                   |
+|  REST API, DDD)   |         +-------------------+
+|                   |
++--------+----------+
+         |
+         | REST (z.B. Konto anlegen, Zahlung auslösen)
+         v
++--------+----------+
+|                   |
+|   Kafka-Broker    |  <-------------------+
+|   (Event Bus,     |                       |
+|    TCP 9092/9093) |                       |
++--------+----------+                       |
+         |                                  |
+         |                                  |
+         | Kafka-Events (TCP)               |
+         v                                  |
++-------------------+        +-------------------+
+| Zahlungs-Service  |        | Inhaber-Service   |
+| (Consumer/Producer|        | (Consumer/Producer|
+|  für Events)      |        |  für Events)      |
++-------------------+        +-------------------+
+         ^                                  ^
+         |                                  |
+         +----------------------------------+
+           (Events: payment-requested,
+            payment-completed,
+            inhaber-deleted)
+
++-------------------+
+|      Flyway       |
+| (DB Migration)    |
++-------------------+
+         |
+         v
++-------------------+
+|   PostgreSQL DB   |
++-------------------+
+
++-------------------+
+|   DDD-Konzepte    |
+| (Aggregate, VO,   |
+|  Events, Repo,    |
+|  Factory, Strat., |
+|  Observer)        |
++-------------------+
+
+Legende:
+- Pfeile zeigen Kommunikationsrichtung
+- REST = HTTP(S)
+- JDBC = Datenbankverbindung (TCP)
+- Kafka = Event-Kommunikation (TCP, Topics)
+- DDD-Konzepte sind im Girokonto-Service umgesetzt

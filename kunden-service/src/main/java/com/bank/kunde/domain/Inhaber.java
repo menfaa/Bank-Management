@@ -1,33 +1,41 @@
 // Bounded Context: Inhaber
 package com.bank.kunde.domain;
 
-import jakarta.persistence.*;
-import org.jmolecules.ddd.annotation.AggregateRoot;
-import org.jmolecules.ddd.annotation.Identity;
-import org.jspecify.annotations.Nullable;
-import org.springframework.data.domain.Persistable;
+import jakarta.persistence.*; // JPA-Annotationen
+import org.jmolecules.ddd.annotation.AggregateRoot; // DDD: Markiert die Klasse als Aggregate Root
+import org.jmolecules.ddd.annotation.Identity; // DDD: Markiert das Identitätsfeld
+import org.jspecify.annotations.Nullable; // Für Nullable-Rückgabewerte
+import org.springframework.data.domain.Persistable; // Für Spring Data Persistable-Interface
 
-import com.bank.common.InhaberID; //InhaberID
+import com.bank.common.InhaberID; // Value Object für InhaberID
 
-@AggregateRoot
-@Entity
+/**
+ * Die Klasse Inhaber repräsentiert einen Kontoinhaber als Aggregate Root im DDD-Kontext.
+ * Sie ist eine JPA-Entity und speichert die InhaberID und den Namen.
+ */
+@AggregateRoot // DDD: Markiert diese Klasse als Aggregate Root
+@Entity // JPA: Markiert diese Klasse als persistierbare Entity (Tabelle in der Datenbank)
 public class Inhaber implements Persistable<InhaberID> {
 
-    @Id
-    @Embedded
-    @AttributeOverride(name = "value", column = @Column(name = "inhaber_id")) // EXPLIZIT MAPEN
-    @Identity
+    @Id // JPA: Primärschlüssel der Tabelle
+    @Embedded // JPA: Das Feld ist ein eingebettetes Value Object (InhaberID)
+    @AttributeOverride(name = "value", column = @Column(name = "inhaber_id")) // JPA: Überschreibt den Spaltennamen für das Feld "value" in InhaberID zu "inhaber_id"
+    @Identity // DDD: Markiert dieses Feld als Identität des Aggregates
     private InhaberID inhaberId; // InhaberID als Value Object und Identität
 
-    @Column(nullable = false)
+    @Column(nullable = false) // JPA: Spalte darf nicht null sein
     private String name; // Name des Inhabers
 
-    @Transient // Wird nicht in der Datenbank gespeichert
-    private boolean isNew = true;
+    @Transient // JPA: Wird nicht in der Datenbank gespeichert
+    private boolean isNew = true; // Kennzeichnet, ob das Objekt neu ist (für Persistable)
 
     protected Inhaber() {
+        // Für JPA (Standardkonstruktor)
     }
 
+    /**
+     * Konstruktor für einen neuen Inhaber.
+     */
     public Inhaber(InhaberID inhaberId, String name) {
         this.inhaberId = inhaberId;
         this.name = name;
@@ -51,6 +59,9 @@ public class Inhaber implements Persistable<InhaberID> {
         return isNew;
     }
 
+    /**
+     * Setzt das Flag isNew auf false, wenn das Objekt geladen oder gespeichert wird.
+     */
     @PostLoad
     @PrePersist
     void markNotNew() {

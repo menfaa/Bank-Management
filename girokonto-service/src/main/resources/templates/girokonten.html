@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <title>Alle Girokonten</title>
+    <!-- Keycloak JavaScript-Adapter für Authentifizierung -->
     <script src="http://localhost:8081/js/keycloak.js"></script>
     <style>
+        /* Grundlegendes Styling für die Seite und die Tabelle */
         body { font-family: sans-serif; padding: 20px; background-color: #f4f7f6; color: #333; }
         .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         table { border-collapse: collapse; width: 100%; margin-top: 10px; background: #fff; }
@@ -27,19 +29,23 @@
    <div class="container">
     <h1>🏦 Girokonten Überwachung</h1>
     
+    <!-- Link zurück zum Dashboard -->
     <a href="http://localhost:9000" class="button">⬅ Zurück zum Dashboard</a>
 
+    <!-- Statusanzeige und Container für die Kontenliste -->
     <div id="loading">Initialisiere Authentifizierung...</div>
     <div id="konten-liste"></div>
     </div>
 
     <script>
+        // Initialisiere Keycloak für Authentifizierung
         const keycloak = new Keycloak({
             url: 'http://localhost:8081/',
             realm: 'myRealm',
             clientId: 'girokonto-service'
         });
 
+        // Starte Authentifizierung und lade Konten nach erfolgreichem Login
         keycloak.init({ onLoad: 'login-required', checkLoginIframe: false }).then(auth => {
             if (auth) {
                 document.getElementById('loading').textContent = "Lade Kontodaten...";
@@ -47,6 +53,7 @@
             }
         });
 
+        // Lädt alle Girokonten vom Backend (mit Auth-Token)
         function loadGirokonten() {
             keycloak.updateToken(30).then(() => {
                 fetch('http://localhost:9000/api/girokonten', {
@@ -60,6 +67,7 @@
             });
         }
 
+        // Rendert die Liste der Girokonten und deren Auszüge
         function renderKonten(girokonten) {
             const container = document.getElementById('konten-liste');
             const loading = document.getElementById('loading');
@@ -70,7 +78,7 @@
             }
 
             girokonten.forEach(konto => {
-                // FIX: Sicherer Zugriff auf DDD-Objekte (Object vs String)
+                // Sicherer Zugriff auf DDD-Objekte (Object vs String)
                 const currentIban = konto.iban.value || konto.iban;
                 const currentInhaber = konto.inhaberId.value || konto.inhaberId;
                 const currentSaldo = (konto.kontostand && konto.kontostand.betrag) ? konto.kontostand.betrag.wert : "0.00";
@@ -100,6 +108,7 @@
                         </table>`;
                 }
 
+                // HTML-Block für ein Girokonto
                 const block = `
                     <div class="konto-block">
                         <button class="btn-delete" onclick="deleteKonto('${currentIban}')">Konto löschen</button>
@@ -114,6 +123,7 @@
             loading.style.display = 'none';
         }
 
+        // Löscht ein Girokonto nach Bestätigung und lädt die Liste neu
         async function deleteKonto(iban) {
             if (!confirm(`Möchten Sie das Konto ${iban} wirklich löschen?`)) return;
 

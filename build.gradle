@@ -1,24 +1,23 @@
 plugins {
-    id 'org.springframework.boot' version '4.0.1' apply false
-    id 'io.spring.dependency-management' version '1.1.4' apply false
-    id 'java'
+    id 'org.springframework.boot' version '4.0.1' apply false // Spring Boot Plugin, aber noch nicht global angewendet
+    id 'io.spring.dependency-management' version '1.1.4' apply false // Dependency Management Plugin, aber noch nicht global angewendet
+    id 'java' // Java Plugin für Java-Projekte
 }
 
-group = 'com.bank.girokonto'
-version = '1.0.0'
+group = 'com.bank.girokonto' // Maven-Gruppen-ID (Namespace für das Projekt)
+version = '1.0.0' // Projektversion
 
 repositories {
-    mavenCentral()
+    mavenCentral() // Zentrale Maven-Repository für Abhängigkeiten
 }
-
 
 subprojects {
     // Gemeinsame Java-Konfiguration für ALLE Module
-    apply plugin: 'java'
-    
+    apply plugin: 'java' // Jedes Subprojekt ist ein Java-Projekt
+
     // Spring Boot Plugin NUR für App-Module (nicht für bank-common)
     if (it.name != 'bank-common') {
-        apply plugin: 'org.springframework.boot'
-        apply plugin: 'io.spring.dependency-management'
+        apply plugin: 'org.springframework.boot' // Spring Boot Plugin für App-Module
+        apply plugin: 'io.spring.dependency-management' // Dependency Management Plugin für App-Module
     }
 }
