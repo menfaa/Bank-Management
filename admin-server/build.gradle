@@ -1,7 +1,7 @@
 plugins {
-	id 'java'
-	id 'org.springframework.boot' version '4.1.0-SNAPSHOT'
-	id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.springframework.boot' version '4.0.1' // Spring Boot Plugin für einfaches Spring Boot Build/Run
+    id 'io.spring.dependency-management' version '1.1.4' // Verwaltung von Abhängigkeiten und deren Versionen
+    id 'java' // Java Plugin für Java-Projekte
 }
 
 group = 'com.example'
