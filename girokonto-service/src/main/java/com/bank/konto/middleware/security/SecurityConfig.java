@@ -40,7 +40,13 @@ public class SecurityConfig {
                                                 .requestMatchers(
                                                                 "/", "/index.html", "/girokonten", "/girokonten.html",
                                                                 "/favicon.ico",
-                                                                "/css/**", "/js/**", "/images/**", "/webjars/**")
+                                                                "/css/**", "/js/**", "/images/**", "/webjars/**",
+                                                                // Swagger/OpenAPI freigeben:
+                                                                "/swagger-ui/**",
+                                                                "/swagger-ui.html",
+                                                                "/v3/api-docs/**",
+                                                                 "/actuator/**" // <-- Health-Endpoint explizit erlauben!
+                                                        )
                                                 .permitAll() // Diese Pfade sind öffentlich zugänglich
                                                 .anyRequest().authenticated()) // Alle anderen Anfragen benötigen Authentifizierung
                                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults())); // JWT-Authentifizierung

@@ -18,32 +18,40 @@ import org.jmolecules.ddd.annotation.Identity;
 import com.bank.common.Betrag;
 import com.bank.common.IBAN;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.time.LocalDate;
 
 @jakarta.persistence.Entity // JPA-Entity: Wird von JPA/Hibernate als Datenbanktabelle behandelt
 @org.jmolecules.ddd.annotation.Entity // DDD-Entity: Markiert die Klasse als Entity im DDD-Kontext
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE) // Vererbung: Alle Unterklassen werden in einer Tabelle gespeichert
 @DiscriminatorColumn(name = "transaktionsart") // Diskriminatorspalte zur Unterscheidung von Unterklassen
+@Schema(description = "Kontoauszug-Entity: repräsentiert einen einzelnen Buchungsposten (Transaktion) auf einem Girokonto")
 public class Kontoauszug {
 
     @Id // Primärschlüssel der Tabelle
     @GeneratedValue(strategy = GenerationType.IDENTITY) // Automatische Generierung der ID (Auto-Increment)
     @Identity // DDD: Markiert dieses Feld als Identität der Entity
+    @Schema(description = "Eindeutige ID des Kontoauszugs", example = "1")
     private Long id; // Eindeutige ID des Kontoauszugs
 
     @Embedded // Das Feld ist ein eingebettetes Value Object (IBAN)
     @AttributeOverride(name = "value", column = @Column(name = "girokonto_iban", nullable = false)) // Überschreibt den Spaltennamen für das Feld "value" in IBAN zu "girokonto_iban"
+    @Schema(description = "IBAN des zugehörigen Girokontos", example = "DE12345678901234567890")
     private IBAN girokontoIban; // IBAN des zugehörigen Girokontos
 
     @Column(nullable = false) // Spalte darf nicht null sein
+    @Schema(description = "Buchungsdatum", example = "2024-04-09")
     private LocalDate datum; // Buchungsdatum
 
     @Column(nullable = false) // Spalte darf nicht null sein
     @Embedded // Betrag als eingebettetes Value Object
     @AttributeOverride(name = "wert", column = @Column(name = "betrag")) // Überschreibt den Spaltennamen für das Feld "wert" in Betrag zu "betrag"
+    @Schema(description = "Betrag der Transaktion (positiv = Einzahlung, negativ = Auszahlung)", example = "100.00")
     private Betrag betrag; // Betrag (positiv = Einzahlung, negativ = Auszahlung)
 
     @Column(nullable = false) // Spalte darf nicht null sein
+    @Schema(description = "Verwendungszweck", example = "Miete April")
     private String verwendungszweck; // Verwendungszweck
 
     protected Kontoauszug() {
@@ -57,22 +65,27 @@ public class Kontoauszug {
         this.verwendungszweck = verwendungszweck;
     }
 
+    @Schema(description = "Eindeutige ID des Kontoauszugs")
     public Long getId() {
         return id;
     }
 
+    @Schema(description = "IBAN des zugehörigen Girokontos")
     public IBAN getGirokontoIban() {
         return girokontoIban;
     }
 
+    @Schema(description = "Buchungsdatum")
     public LocalDate getDatum() {
         return datum;
     }
 
+    @Schema(description = "Betrag der Transaktion")
     public Betrag getBetrag() {
         return betrag;
     }
 
+    @Schema(description = "Verwendungszweck")
     public String getVerwendungszweck() {
         return verwendungszweck;
     }

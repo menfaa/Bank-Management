@@ -19,6 +19,32 @@ services: # Beginn der Service-Definitionen
       interval: 5s # Intervall zwischen Healthchecks
       timeout: 5s # Timeout für einen Healthcheck
       retries: 10 # Anzahl der Versuche bis als "unhealthy" markiert
+      
+  admin-server-db:
+    image: postgres:15
+    container_name: admin-server-db
+    environment:
+      POSTGRES_DB: adminserver
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    ports:
+      - "5436:5432"
+
+  admin-server:
+    build:
+      context: ./admin-server
+      dockerfile: Dockerfile
+    container_name: admin-server
+    ports:
+      - "8085:8085"
+    environment:
+      SERVER_PORT: 8085
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://admin-server-db:5432/adminserver
+      SPRING_DATASOURCE_USERNAME: admin
+      SPRING_DATASOURCE_PASSWORD: admin
+    depends_on:
+      - admin-server-db
 
   girokonto-db: # PostgreSQL-Datenbank für Girokonto-Service
     image: postgres:15 # Verwendetes Docker-Image für PostgreSQL

@@ -21,9 +21,14 @@ import org.springframework.http.*; // Importiert HTTP-Klassen
 import java.time.LocalDate; // Importiert LocalDate für Datumsangaben
 import java.util.Optional; // Importiert Optional für optionale Rückgaben
 
+// OpenAPI-Annotations
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController // Markiert die Klasse als REST-Controller
 @RequestMapping("/api/girokonten") // Basis-URL für alle Endpunkte dieser Klasse
 @CrossOrigin(origins = "http://localhost:3000") // Erlaubt CORS-Zugriff vom React-Frontend
+@Tag(name = "Girokonto", description = "API für Girokonten")
 public class GirokontoController {
 
     private final GirokontoService service; // Service für Girokonten
@@ -44,24 +49,28 @@ public class GirokontoController {
     }
 
     // Alle Girokonten abrufen
+    @Operation(summary = "Alle Girokonten abrufen")
     @GetMapping
     public Iterable<Girokonto> alleGirokonten() {
         return service.findAllGirokontos();
     }
 
     // Einzelnes Girokonto per IBAN abrufen
+    @Operation(summary = "Einzelnes Girokonto per IBAN abrufen")
     @GetMapping("/{iban}")
     public Girokonto kontoByIban(@PathVariable IBAN iban) {
         return service.findByIban(iban.getValue());
     }
 
     // Einzelnes Girokonto mit Kontoauszügen per IBAN abrufen
+      @Operation(summary = "Einzelnes Girokonto mit Kontoauszügen per IBAN abrufen")
     @GetMapping("/kontoauszuege/{iban}")
     public Optional<Girokonto> kontoByIbanithKontoauszuege(@PathVariable String iban) {
         return service.findByIbanWithKontoauszuege(iban);
     }
 
     // Neues Girokonto anlegen
+    @Operation(summary = "Neues Girokonto anlegen")
     @PostMapping
     public ResponseEntity<?> neuesKonto(@RequestBody Girokonto girokonto) {
         // 1. Inhaber ID aus dem Request extrahieren
@@ -108,6 +117,7 @@ public class GirokontoController {
     }
 
     // Karten-Zahlung anfragen
+    @Operation(summary = "Karten-Zahlung anfragen")
     @PostMapping("/{iban}/kartenpayment")
     public void requestPayment(
             @PathVariable String iban,
@@ -132,12 +142,14 @@ public class GirokontoController {
     }
 
     // Konto löschen
+    @Operation(summary = "Konto löschen")
     @DeleteMapping("/{iban}")
     public void deleteKonto(@PathVariable IBAN iban) {
         service.deleteByIban(iban.getValue());
     }
 
     // Exception-Handler für nicht gefundene Konten
+    @Operation(summary = "Exception-Handler für nicht gefundene Konten")
     @ExceptionHandler(NoGirokontoFoundException.class)
     public ResponseEntity<String> handleNoGirokontoFoundException(NoGirokontoFoundException ex) {
         return ResponseEntity.internalServerError().body("No Girokonto found with iban: " + ex.getIban().getValue());
