@@ -8,3 +8,4 @@
     ssh-add ~/.ssh/id_ed25519
 5. Teste die Verbindung zu GitHub:
    ssh -T git@github.com
+6. tbd
